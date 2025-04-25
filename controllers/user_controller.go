@@ -20,6 +20,12 @@ type LoginInput struct {
 	Password string `json:"password" binding:"required,min=6"`
 }
 
+type UserResponse struct {
+	ID		uint   `json:"id"`
+	Username string `json:"username"`
+	Email 	string `json:"email"`
+}
+
 func Register(c *gin.Context) {
 	var input RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -40,13 +46,39 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"user": user})
+	reponse := UserResponse{
+		ID: user.ID,
+		Username: user.Username,
+		Email: user.Email,
+	}
+	c.JSON(http.StatusCreated, gin.H{"user": reponse})
 }
 
 
 
 func GetProfile(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"user": "You are authorized!"})
+	userINRow, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userID, ok := userINRow.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID in token"})
+		return
+	}
+
+	user, err := services.GetUserByID(userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":       user.ID,
+		"username": user.Username,
+		"email":    user.Email,})
 }
 
 

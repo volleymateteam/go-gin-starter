@@ -33,3 +33,11 @@ func GetUserByEmail(email string) (*models.User, error) {
 	}
 	return &user, nil
 }
+
+func GetUserByID(id uint) (*models.User, error) {
+	var user models.User
+	if err := database.DB.First(&user, id).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
