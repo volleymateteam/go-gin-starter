@@ -1,14 +1,16 @@
 package main
 
-import(
-	"go-gin-starter/config",
-	"go-gin-starter/routes",
+import (
+	"go-gin-starter/config"
+	"go-gin-starter/routes"
+	"go-gin-starter/database"
+	"go-gin-starter/models"
+
 	"github.com/gin-gonic/gin"
 	_ "go-gin-starter/docs" // swagger docs
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
-
 
 func main() {
 	config.LoadEnv()

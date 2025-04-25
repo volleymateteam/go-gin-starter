@@ -1,7 +1,6 @@
 package services
 
 import (
-	"errors"
 	"go-gin-starter/database"
 	"go-gin-starter/models"
 	"go-gin-starter/utils"
@@ -14,7 +13,7 @@ func CreateUser(username, email, password string) (*models.User, error) {
 		return nil, err
 	}
 
-	user := models.User{
+	user := &models.User{
 		Username: username,
 		Email:    email,
 		Password: hashedPassword,
@@ -25,4 +24,12 @@ func CreateUser(username, email, password string) (*models.User, error) {
 	}
 
 	return user, nil
+}
+
+func GetUserByEmail(email string) (*models.User, error) {
+	var user models.User
+	if err := database.DB.Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
 }

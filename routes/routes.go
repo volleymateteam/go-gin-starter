@@ -10,10 +10,11 @@ import (
 func SetupRoutes(router *gin.Engine) {
 	api := router.Group("/api")
 	{
-		api.GET("/login", controllers.Login)
+		api.POST("/register", controllers.Register)
+		api.POST("/login", controllers.Login)
 
 		auth := api.Group("/")
-		auth.User(middleware.JWTAuth())
-		auth.GET("/profile", controllers.Profile)
+		auth.Use(middleware.JWTAuth())
+		auth.GET("/profile", controllers.GetProfile)
 	}
 }
