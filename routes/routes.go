@@ -18,6 +18,7 @@ func SetupRoutes(router *gin.Engine) {
 		auth.Use(middleware.JWTAuth())
 		auth.GET("/profile", controllers.GetProfile)
 		auth.PUT("/profile", controllers.UpdateProfile)
+		auth.DELETE("/profile", controllers.DeleteProfile)
 		auth.GET("/users", controllers.GetAllUsers)
 	}
 }

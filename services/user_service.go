@@ -55,3 +55,17 @@ func GetAllUsers() ([]models.User, error) {
 
 	return users, nil
 }
+
+
+func DeleteUserByID(id uint) error {
+	var user models.User
+	if err := database.DB.First(&user, id).Error; err != nil {
+		return err
+	}
+
+	if err := database.DB.Delete(&user).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
