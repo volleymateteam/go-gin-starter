@@ -20,5 +20,6 @@ func SetupRoutes(router *gin.Engine) {
 		auth.PUT("/profile", controllers.UpdateProfile)
 		auth.DELETE("/profile", controllers.DeleteProfile)
 		auth.GET("/users", controllers.GetAllUsers)
+		auth.PUT("/profile/change-password", controllers.ChangePassword)
 	}
 }

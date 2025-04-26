@@ -30,6 +30,11 @@ type UpdateUserInput struct {
 	Email string `json:"email" binding:"omitempty,email"`
 }
 
+type ChangePasswordInput struct {
+	OldPassword string `json:"old_password" binding:"required,min=6"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
+}
+
 func Register(c *gin.Context) {
 	var input RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -236,7 +241,29 @@ func ChangePassword(c *gin.Context) {
 
 	// Check old password
 	if !utils.CheckPasswordHash(input.OldPassword, user.Password) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid old password"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid old password"})
 		return
 	}
+
+	// Validate new password strength
+	if !utils.IsStrongPassword(input.NewPassword) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "New password must contain at least 8 characters, including uppercase, lowercase, numbers, and special characters."})
+		return
+	}
+
+	// Hash and update new password
+	hashedPassword, err := utils.HashPassword(input.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash new password"})
+		return
+	}
+
+	user.Password = hashedPassword
+
+	if err := services.UpdateUser(user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
 }
