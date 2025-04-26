@@ -69,3 +69,23 @@ func DeleteUserByID(id uint) error {
 
 	return nil
 }
+
+
+func GetUsersWithPagination(page int, limit int) ([]models.User, int64, error) {
+	var users []models.User
+	var totalUsers int64
+
+	offset := (page - 1) * limit
+
+	// Count total users (without deleted)
+	if err := database.DB.Model(&models.User{}).Where("deleted_at IS NULL").Count(&totalUsers).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Fetch users with limit and offset
+	if err := database.DB.Where("deleted_at IS NULL").Limit(limit).Offset(offset).Find(&users).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return users, totalUsers, nil
+}

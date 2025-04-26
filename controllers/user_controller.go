@@ -7,6 +7,7 @@ import (
 
 	"net/http"
 	"github.com/gin-gonic/gin"
+	"strconv"
 )
 
 type RegisterInput struct {
@@ -173,7 +174,20 @@ func UpdateProfile(c *gin.Context) {
 
 // this endpoint is for admin use only! we will use middleware to check if the user is admin
 func GetAllUsers(c *gin.Context) {
-	users, err := services.GetAllUsers()
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "10")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 {
+		limit = 10
+	}
+
+	users, totalUsers, err := services.GetUsersWithPagination(page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -182,15 +196,21 @@ func GetAllUsers(c *gin.Context) {
 	var response []UserResponse
 	for _, user := range users {
 		response = append(response, UserResponse{
-			ID: user.ID,
+			ID: 		 user.ID,
 			Username: user.Username,
-			Email: user.Email,
+			Email:    user.Email,
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"users": response})
-}
+	totalPages := (int(totalUsers) + limit - 1) / limit
 
+	c.JSON(http.StatusOK, gin.H{
+		"users": 		 response,
+		"total_users": 	 totalUsers,
+		"total_pages": 	 totalPages,
+		"current_page":   page,
+	})
+}
 
 func DeleteProfile(c *gin.Context) {
 	userIDInterface, exists := c.Get("user_id")
