@@ -3,6 +3,7 @@ package controllers
 import (
 	"go-gin-starter/services"
 	"go-gin-starter/utils"
+	"github.com/google/uuid"
 
 	"net/http"
 	"github.com/gin-gonic/gin"
@@ -11,7 +12,7 @@ import (
 type RegisterInput struct {
 	Username string `json:"username" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
+	Password string `json:"password" binding:"required,min=8"`
 }
 
 type LoginInput struct {
@@ -20,7 +21,7 @@ type LoginInput struct {
 }
 
 type UserResponse struct {
-	ID		uint   `json:"id"`
+	ID		uuid.UUID   `json:"id"`
 	Username string `json:"username"`
 	Email 	string `json:"email"`
 }
@@ -31,8 +32,8 @@ type UpdateUserInput struct {
 }
 
 type ChangePasswordInput struct {
-	OldPassword string `json:"old_password" binding:"required,min=6"`
-	NewPassword string `json:"new_password" binding:"required,min=6"`
+	OldPassword string `json:"old_password" binding:"required,min=8"`
+	NewPassword string `json:"new_password" binding:"required,min=8"`
 }
 
 func Register(c *gin.Context) {

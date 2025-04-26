@@ -26,7 +26,7 @@ func JWTAuth() gin.HandlerFunc {
 			return
 		}
 
-		// Optionally store user ID in context
+		// Store UUID user ID in context directly
 		c.Set("user_id", claims.UserID)
 		c.Next()
 	}

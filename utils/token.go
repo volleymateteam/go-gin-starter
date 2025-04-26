@@ -6,16 +6,17 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 var jwtKey = []byte(os.Getenv("JWT_SECRET"))
 
 type Claims struct {
-	UserID uint
+	UserID uuid.UUID
 	jwt.RegisteredClaims
 }
 
-func GenerateJWT(userID uint) (string, error) {
+func GenerateJWT(userID uuid.UUID) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
 
 	claims := &Claims{
