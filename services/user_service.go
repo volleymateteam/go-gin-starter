@@ -41,3 +41,17 @@ func GetUserByID(id uint) (*models.User, error) {
 	}
 	return &user, nil
 }
+
+func UpdateUser(user *models.User) error {
+	return database.DB.Save(user).Error
+}
+
+
+func GetAllUsers() ([]models.User, error) {
+	var users []models.User
+	if err := database.DB.Find(&users).Error; err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}

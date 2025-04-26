@@ -3,7 +3,6 @@ package controllers
 import (
 	"go-gin-starter/services"
 	"go-gin-starter/utils"
-	"log"
 
 	"net/http"
 	"github.com/gin-gonic/gin"
@@ -26,6 +25,11 @@ type UserResponse struct {
 	Email 	string `json:"email"`
 }
 
+type UpdateUserInput struct {
+	Username string `json:"username" binding:"omitempty,min=3,max=20"`
+	Email string `json:"email" binding:"omitempty,email"`
+}
+
 func Register(c *gin.Context) {
 	var input RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -33,9 +37,6 @@ func Register(c *gin.Context) {
 		return 
 	}
 
-	// Debug log to confirm password check execution
-	log.Printf("Checking password strength for: %s", input.Password)
-	log.Printf("Password validation result: %v for password: %s", utils.IsStrongPassword(input.Password), input.Password)
 	if !utils.IsStrongPassword(input.Password) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Password must contain at least 8 characters, including uppercase, lowercase, numbers, and special characters."})
 		return
@@ -46,12 +47,12 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	reponse := UserResponse{
+	response := UserResponse{
 		ID: user.ID,
 		Username: user.Username,
 		Email: user.Email,
 	}
-	c.JSON(http.StatusCreated, gin.H{"user": reponse})
+	c.JSON(http.StatusCreated, gin.H{"user": response})
 }
 
 
@@ -75,11 +76,13 @@ func GetProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"id":       user.ID,
-		"username": user.Username,
-		"email":    user.Email,})
-}
+	response := UserResponse{
+		ID:       user.ID,
+		Username: user.Username,
+		Email:    user.Email,
+	}
+
+	c.JSON(http.StatusOK, gin.H{"user": response})}
 
 
 func Login(c *gin.Context) {
@@ -106,5 +109,78 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	response := UserResponse{
+		ID: user.ID,
+		Username: user.Username,
+		Email: user.Email,
+	}
+
+	c.JSON(http.StatusOK, gin.H{"token": token, "user": response})
+}
+
+
+func UpdateProfile(c *gin.Context) {
+	var input UpdateUserInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userID, ok := userIDInterface.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	user, err := services.GetUserByID(userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	if input.Username != "" {
+		user.Username = input.Username
+	}
+	if input.Email != "" {
+		user.Email = input.Email
+	}
+
+	if err := services.UpdateUser(user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := UserResponse{
+		ID: user.ID,
+		Username: user.Username,
+		Email: user.Email,
+	}
+
+	c.JSON(http.StatusOK, gin.H{"user": response})
+}
+
+
+func GetAllUsers(c *gin.Context) {
+	users, err := services.GetAllUsers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	var response []UserResponse
+	for _, user := range users {
+		response = append(response, UserResponse{
+			ID: user.ID,
+			Username: user.Username,
+			Email: user.Email,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"users": response})
 }

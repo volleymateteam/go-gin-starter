@@ -12,9 +12,12 @@ func SetupRoutes(router *gin.Engine) {
 	{
 		api.POST("/register", controllers.Register)
 		api.POST("/login", controllers.Login)
+	
 
 		auth := api.Group("/")
 		auth.Use(middleware.JWTAuth())
 		auth.GET("/profile", controllers.GetProfile)
+		auth.PUT("/profile", controllers.UpdateProfile)
+		auth.GET("/users", controllers.GetAllUsers)
 	}
 }
