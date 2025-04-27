@@ -4,6 +4,8 @@ import (
 	"go-gin-starter/database"
 	"go-gin-starter/models"
 	"go-gin-starter/utils"
+
+	"github.com/google/uuid"
 )
 
 
@@ -34,7 +36,7 @@ func GetUserByEmail(email string) (*models.User, error) {
 	return &user, nil
 }
 
-func GetUserByID(id uint) (*models.User, error) {
+func GetUserByID(id uuid.UUID) (*models.User, error) {
 	var user models.User
 	if err := database.DB.First(&user, id).Error; err != nil {
 		return nil, err
@@ -57,16 +59,15 @@ func GetAllUsers() ([]models.User, error) {
 }
 
 
-func DeleteUserByID(id uint) error {
+func DeleteUserByID(id uuid.UUID) error {
 	var user models.User
-	if err := database.DB.First(&user, id).Error; err != nil {
+	if err := database.DB.First(&user, "id = ?", id).Error; err != nil {
 		return err
 	}
 
 	if err := database.DB.Delete(&user).Error; err != nil {
 		return err
 	}
-
 	return nil
 }
 

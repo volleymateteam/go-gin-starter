@@ -3,11 +3,14 @@ package controllers
 import (
 	"go-gin-starter/services"
 	"go-gin-starter/utils"
+	"path/filepath"
+
 	"github.com/google/uuid"
 
 	"net/http"
-	"github.com/gin-gonic/gin"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 type RegisterInput struct {
@@ -22,14 +25,14 @@ type LoginInput struct {
 }
 
 type UserResponse struct {
-	ID		uuid.UUID   `json:"id"`
-	Username string `json:"username"`
-	Email 	string `json:"email"`
+	ID       uuid.UUID `json:"id"`
+	Username string    `json:"username"`
+	Email    string    `json:"email"`
 }
 
 type UpdateUserInput struct {
 	Username string `json:"username" binding:"omitempty,min=3,max=20"`
-	Email string `json:"email" binding:"omitempty,email"`
+	Email    string `json:"email" binding:"omitempty,email"`
 }
 
 type ChangePasswordInput struct {
@@ -41,7 +44,7 @@ func Register(c *gin.Context) {
 	var input RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return 
+		return
 	}
 
 	if !utils.IsStrongPassword(input.Password) {
@@ -55,14 +58,12 @@ func Register(c *gin.Context) {
 	}
 
 	response := UserResponse{
-		ID: user.ID,
+		ID:       user.ID,
 		Username: user.Username,
-		Email: user.Email,
+		Email:    user.Email,
 	}
 	c.JSON(http.StatusCreated, gin.H{"user": response})
 }
-
-
 
 func GetProfile(c *gin.Context) {
 	userINRow, exists := c.Get("user_id")
@@ -71,7 +72,7 @@ func GetProfile(c *gin.Context) {
 		return
 	}
 
-	userID, ok := userINRow.(uint)
+	userID, ok := userINRow.(uuid.UUID)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID in token"})
 		return
@@ -89,8 +90,8 @@ func GetProfile(c *gin.Context) {
 		Email:    user.Email,
 	}
 
-	c.JSON(http.StatusOK, gin.H{"user": response})}
-
+	c.JSON(http.StatusOK, gin.H{"user": response})
+}
 
 func Login(c *gin.Context) {
 	var input LoginInput
@@ -117,14 +118,13 @@ func Login(c *gin.Context) {
 	}
 
 	response := UserResponse{
-		ID: user.ID,
+		ID:       user.ID,
 		Username: user.Username,
-		Email: user.Email,
+		Email:    user.Email,
 	}
 
 	c.JSON(http.StatusOK, gin.H{"token": token, "user": response})
 }
-
 
 func UpdateProfile(c *gin.Context) {
 	var input UpdateUserInput
@@ -139,7 +139,7 @@ func UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	userID, ok := userIDInterface.(uint)
+	userID, ok := userIDInterface.(uuid.UUID)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID"})
 		return
@@ -164,9 +164,9 @@ func UpdateProfile(c *gin.Context) {
 	}
 
 	response := UserResponse{
-		ID: user.ID,
+		ID:       user.ID,
 		Username: user.Username,
-		Email: user.Email,
+		Email:    user.Email,
 	}
 
 	c.JSON(http.StatusOK, gin.H{"user": response})
@@ -196,7 +196,7 @@ func GetAllUsers(c *gin.Context) {
 	var response []UserResponse
 	for _, user := range users {
 		response = append(response, UserResponse{
-			ID: 		 user.ID,
+			ID:       user.ID,
 			Username: user.Username,
 			Email:    user.Email,
 		})
@@ -205,10 +205,10 @@ func GetAllUsers(c *gin.Context) {
 	totalPages := (int(totalUsers) + limit - 1) / limit
 
 	c.JSON(http.StatusOK, gin.H{
-		"users": 		 response,
-		"total_users": 	 totalUsers,
-		"total_pages": 	 totalPages,
-		"current_page":   page,
+		"users":        response,
+		"total_users":  totalUsers,
+		"total_pages":  totalPages,
+		"current_page": page,
 	})
 }
 
@@ -219,7 +219,7 @@ func DeleteProfile(c *gin.Context) {
 		return
 	}
 
-	userID, ok := userIDInterface.(uint)
+	userID, ok := userIDInterface.(uuid.UUID)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID"})
 		return
@@ -234,7 +234,6 @@ func DeleteProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
 }
 
-
 func ChangePassword(c *gin.Context) {
 	var input ChangePasswordInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -248,7 +247,7 @@ func ChangePassword(c *gin.Context) {
 		return
 	}
 
-	userID, ok := userIDInterface.(uint)
+	userID, ok := userIDInterface.(uuid.UUID)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID"})
 		return
@@ -287,4 +286,65 @@ func ChangePassword(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
+}
+
+func UploadAvatar(c *gin.Context) {
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	user, err := services.GetUserByID(userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Multipart form
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Avatar file is required"})
+		return
+	}
+
+	// Check file size - max 2 MB (2 * 1024 * 1024 bytes)
+	const maxAvatarSize = 2 * 1024 * 1024
+
+	if file.Size > maxAvatarSize {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Avatar file is too large. Max size is 2MB"})
+		return
+	}
+
+	// Optional: Validate file type (e.g., jpg, png only)
+	ext := filepath.Ext(file.Filename)
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Only .jpg, .jpeg and .png formats are allowed"})
+		return
+	}
+
+	// Generate a unique filename
+	newFileName := uuid.New().String() + ext
+	savePath := filepath.Join("uploads/avatars", newFileName)
+
+	// Save file
+	if err := c.SaveUploadedFile(file, savePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload avatar"})
+		return
+	}
+
+	// Update user's avatar field
+	user.Avatar = newFileName
+	if err := services.UpdateUser(user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user avatar"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Avatar uploaded successfully", "avatar_url": "/uploads/avatars/" + newFileName})
 }
