@@ -1,14 +1,18 @@
 package controllers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+
 	"go-gin-starter/services"
 	"go-gin-starter/utils"
 	"path/filepath"
-
-	"github.com/google/uuid"
+	"time"
 
 	"net/http"
 	"strconv"
+
+	"github.com/google/uuid"
 
 	"github.com/gin-gonic/gin"
 )
@@ -352,4 +356,59 @@ func UploadAvatar(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Avatar uploaded successfully", "avatar_url": "/uploads/avatars/" + newFileName})
+}
+
+// ForgetPassword handles forgot password requests
+func ForgotPassword(c *gin.Context) {
+	var input struct {
+		Email string `json:"email" binding:"required,email"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Generate random token
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate reset token"})
+		return
+	}
+	resetToken := hex.EncodeToString(b)
+	expiry := time.Now().Add(15 * time.Minute)
+
+	err := services.UpdateResetToken(input.Email, resetToken, expiry)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Return token for now (Later we can send via email)
+	c.JSON(http.StatusOK, gin.H{"message": "Reset token generated successfully", "reset_token": resetToken})
+}
+
+// ResetPassword handles password reseting
+func ResetPassword(c *gin.Context) {
+	var input struct {
+		Token       string `json:"token" binding:"required"`
+		NewPassword string `json:"new_password" binding:"required,min=8"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !utils.IsStrongPassword(input.NewPassword) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "New password must be strong (uppercase, lowercase, number, special character)"})
+		return
+	}
+
+	err := services.ResetUserPassword(input.Token, input.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
 }

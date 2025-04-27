@@ -12,6 +12,8 @@ func SetupRoutes(router *gin.Engine) {
 	{
 		api.POST("/register", controllers.Register)
 		api.POST("/login", controllers.Login)
+		api.POST("/password/forgot", controllers.ForgotPassword)
+		api.POST("/password/reset", controllers.ResetPassword)
 
 		auth := api.Group("/")
 		auth.Use(middleware.JWTAuth())

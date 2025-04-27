@@ -1,6 +1,9 @@
 package services
 
 import (
+	"errors"
+	"time"
+
 	"go-gin-starter/database"
 	"go-gin-starter/models"
 	"go-gin-starter/utils"
@@ -98,4 +101,41 @@ func GetUsersWithPagination(page int, limit int) ([]models.User, int64, error) {
 	}
 
 	return users, totalUsers, nil
+}
+
+// UpdateResetToken sets a reset token and expiry time
+func UpdateResetToken(email, token string, expiry time.Time) error {
+	var user models.User
+	if err := database.DB.Where("email = ?", email).First(&user).Error; err != nil {
+		return errors.New("user not found")
+	}
+
+	user.ResetPasswordToken = &token
+	user.ResetPasswordExpires = &expiry
+
+	return database.DB.Save(&user).Error
+}
+
+// ResetUserPassword resets password using token
+func ResetUserPassword(token, newPassword string) error {
+	var user models.User
+	if err := database.DB.Where("reset_password_token = ?", token).First(&user).Error; err != nil {
+		return errors.New("invalid or expired token")
+	}
+
+	// Check expiry
+	if user.ResetPasswordExpires == nil || user.ResetPasswordExpires.Before(time.Now()) {
+		return errors.New("reset token has expired")
+	}
+
+	hashedPassword, err := utils.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+
+	user.Password = hashedPassword
+	user.ResetPasswordToken = nil
+	user.ResetPasswordExpires = nil
+
+	return database.DB.Save(&user).Error
 }
