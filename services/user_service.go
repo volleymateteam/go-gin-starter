@@ -8,17 +8,29 @@ import (
 	"github.com/google/uuid"
 )
 
-
-func CreateUser(username, email, password string) (*models.User, error) {
+func CreateUser(username, email, password, gender string) (*models.User, error) {
 	hashedPassword, err := utils.HashPassword(password)
 	if err != nil {
 		return nil, err
+	}
+
+	// Default avatar based on gender
+	var avatar string
+	switch gender {
+	case "male":
+		avatar = "defaults/default-male.png"
+	case "female":
+		avatar = "defaults/default-female.png"
+	default:
+		avatar = "defaults/default-male.png"
 	}
 
 	user := &models.User{
 		Username: username,
 		Email:    email,
 		Password: hashedPassword,
+		Gender:   gender,
+		Avatar:   avatar,
 	}
 
 	if err := database.DB.Create(user).Error; err != nil {
@@ -48,7 +60,6 @@ func UpdateUser(user *models.User) error {
 	return database.DB.Save(user).Error
 }
 
-
 func GetAllUsers() ([]models.User, error) {
 	var users []models.User
 	if err := database.DB.Find(&users).Error; err != nil {
@@ -57,7 +68,6 @@ func GetAllUsers() ([]models.User, error) {
 
 	return users, nil
 }
-
 
 func DeleteUserByID(id uuid.UUID) error {
 	var user models.User
@@ -70,7 +80,6 @@ func DeleteUserByID(id uuid.UUID) error {
 	}
 	return nil
 }
-
 
 func GetUsersWithPagination(page int, limit int) ([]models.User, int64, error) {
 	var users []models.User

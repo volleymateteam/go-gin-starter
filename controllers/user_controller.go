@@ -17,6 +17,7 @@ type RegisterInput struct {
 	Username string `json:"username" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=8"`
+	Gender   string `json:"gender" binding:"required,oneof=male female other"`
 }
 
 type LoginInput struct {
@@ -25,9 +26,11 @@ type LoginInput struct {
 }
 
 type UserResponse struct {
-	ID       uuid.UUID `json:"id"`
-	Username string    `json:"username"`
-	Email    string    `json:"email"`
+	ID        uuid.UUID `json:"id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	Gender    string    `json:"gender"`
+	AvatarURL string    `json:"avatar_url"`
 }
 
 type UpdateUserInput struct {
@@ -51,16 +54,18 @@ func Register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Password must contain at least 8 characters, including uppercase, lowercase, numbers, and special characters."})
 		return
 	}
-	user, err := services.CreateUser(input.Username, input.Email, input.Password)
+	user, err := services.CreateUser(input.Username, input.Email, input.Password, input.Gender)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	response := UserResponse{
-		ID:       user.ID,
-		Username: user.Username,
-		Email:    user.Email,
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Gender:    user.Gender,
+		AvatarURL: "/uploads/avatars/" + user.Avatar,
 	}
 	c.JSON(http.StatusCreated, gin.H{"user": response})
 }
