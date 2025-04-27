@@ -17,11 +17,18 @@ func SetupRoutes(router *gin.Engine) {
 
 		auth := api.Group("/")
 		auth.Use(middleware.JWTAuth())
+
+		// Normal authenticated user routes
 		auth.GET("/profile", controllers.GetProfile)
 		auth.POST("/profile/upload-avatar", controllers.UploadAvatar)
 		auth.PUT("/profile", controllers.UpdateProfile)
 		auth.DELETE("/profile", controllers.DeleteProfile)
-		auth.GET("/users", controllers.GetAllUsers)
 		auth.PUT("/profile/change-password", controllers.ChangePassword)
+
+		// Admin-only routes
+		admin := auth.Group("/admin")
+		admin.Use(middleware.AdminOnly())
+
+		admin.GET("/users", controllers.GetAllUsers)
 	}
 }

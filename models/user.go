@@ -13,7 +13,8 @@ type User struct {
 	Email                string     `gorm:"unique;not null"`
 	Password             string     `gorm:"not null"`
 	Avatar               string     `gorm:"default:'default_avatar.png'"`
-	Gender               string     `gorm:"type:varchar(10)"`
+	Gender               GenderEnum `gorm:"type:varchar(10)"`
+	Role                 RoleEnum   `gorm:"type:varchar(20);default:'player'"`
 	ResetPasswordToken   *string    `gorm:"type:text"`
 	ResetPasswordExpires *time.Time `gorm:"type:timestamp"`
 	CreatedAt            time.Time
