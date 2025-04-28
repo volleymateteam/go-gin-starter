@@ -1,0 +1,33 @@
+package repositories
+
+import (
+	"go-gin-starter/database"
+	"go-gin-starter/models"
+)
+
+// CreateWaitlistEntry inserts a new waitlist record
+func CreateWaitlistEntry(email, source string) error {
+	entry := models.WaitlistEntry{
+		Email:  email,
+		Source: source,
+	}
+	return database.DB.Create(&entry).Error
+}
+
+// IsEmailAlreadyInWaitlist checks if email already exists
+func IsEmailAlreadyInWaitlist(email string) (bool, error) {
+	var count int64
+	if err := database.DB.Model(&models.WaitlistEntry{}).Where("email = ?", email).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// GetAllWaitlistEmails retrieves all waitlist emails
+func GetAllWaitlistEmails() ([]string, error) {
+	var emails []string
+	if err := database.DB.Model(&models.WaitlistEntry{}).Pluck("email", &emails).Error; err != nil {
+		return nil, err
+	}
+	return emails, nil
+}

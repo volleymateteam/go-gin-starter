@@ -15,6 +15,7 @@ func SetupRoutes(router *gin.Engine) {
 		api.POST("/login", controllers.Login)
 		api.POST("/password/forgot", controllers.ForgotPassword)
 		api.POST("/password/reset", controllers.ResetPassword)
+		api.POST("/waitlist", controllers.SubmitWaitlist)
 
 		// Protected routes (need JWT)
 		auth := api.Group("/")
@@ -33,6 +34,7 @@ func SetupRoutes(router *gin.Engine) {
 		admin.GET("/users", controllers.GetAllUsers)
 		admin.PUT("/users/:id", controllers.UpdateUserByAdmin)
 		admin.DELETE("/users/:id", controllers.DeleteUserByAdmin)
+		admin.GET("/waitlist", controllers.GetAllWaitlist)
 
 		// AdminOrSelf routes
 		user := auth.Group("/users")
