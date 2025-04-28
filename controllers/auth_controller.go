@@ -20,7 +20,7 @@ func Register(c *gin.Context) {
 	}
 
 	if !utils.IsStrongPassword(input.Password) {
-		utils.RespondError(c, http.StatusBadRequest, "Password must contain at least 8 characters, including uppercase, lowercase, numbers, and special characters.")
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrStrongPassword)
 		return
 	}
 
@@ -40,25 +40,25 @@ func Register(c *gin.Context) {
 		CreatedAt: user.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
 	}
-	utils.RespondSuccess(c, response, "User registered successfully")
+	utils.RespondSuccess(c, http.StatusCreated, response, utils.MsgUserRegistered)
 }
 
 func Login(c *gin.Context) {
 	var input dto.LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, err.Error())
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidCredentials)
 		return
 	}
 
 	user, err := services.GetUserByEmail(input.Email)
 	if err != nil || !utils.CheckPasswordHash(input.Password, user.Password) {
-		utils.RespondError(c, http.StatusUnauthorized, "Invalid email or password")
+		utils.RespondError(c, http.StatusUnauthorized, utils.ErrInvalidCredentials)
 		return
 	}
 
 	token, err := utils.GenerateJWT(user.ID)
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, "Token generation failed")
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrTokenGenerationFailed)
 		return
 	}
 
@@ -74,7 +74,7 @@ func ForgotPassword(c *gin.Context) {
 
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, "Failed to generate reset token")
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrResetTokenFailed)
 		return
 	}
 	resetToken := hex.EncodeToString(b)
@@ -86,7 +86,7 @@ func ForgotPassword(c *gin.Context) {
 		return
 	}
 
-	utils.RespondSuccess(c, gin.H{"reset_token": resetToken}, "Reset token generated successfully")
+	utils.RespondSuccess(c, http.StatusOK, gin.H{"reset_token": resetToken}, utils.MsgResetTokenCreated)
 }
 
 func ResetPassword(c *gin.Context) {
@@ -97,7 +97,7 @@ func ResetPassword(c *gin.Context) {
 	}
 
 	if !utils.IsStrongPassword(input.NewPassword) {
-		utils.RespondError(c, http.StatusBadRequest, "Password must contain at least 8 characters, including uppercase, lowercase, numbers, and special characters.")
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrStrongPassword)
 		return
 	}
 
@@ -107,5 +107,5 @@ func ResetPassword(c *gin.Context) {
 		return
 	}
 
-	utils.RespondSuccess(c, nil, "Password reset successfully")
+	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgPasswordReset)
 }
