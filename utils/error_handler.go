@@ -1,8 +1,6 @@
 package utils
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -28,8 +26,8 @@ func RespondError(c *gin.Context, code int, message string) {
 }
 
 // RespondSuccess sends a standardized success response
-func RespondSuccess(c *gin.Context, data interface{}, message string) {
-	c.JSON(http.StatusOK, SuccessResponse{
+func RespondSuccess(c *gin.Context, code int, data interface{}, message string) {
+	c.JSON(code, SuccessResponse{
 		Success: true,
 		Data:    data,
 		Message: message,

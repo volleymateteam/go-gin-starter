@@ -10,11 +10,13 @@ import (
 func SetupRoutes(router *gin.Engine) {
 	api := router.Group("/api")
 	{
+		// Public routes (no auth)
 		api.POST("/register", controllers.Register)
 		api.POST("/login", controllers.Login)
 		api.POST("/password/forgot", controllers.ForgotPassword)
 		api.POST("/password/reset", controllers.ResetPassword)
 
+		// Protected routes (need JWT)
 		auth := api.Group("/")
 		auth.Use(middleware.JWTAuth())
 
@@ -28,7 +30,12 @@ func SetupRoutes(router *gin.Engine) {
 		// Admin-only routes
 		admin := auth.Group("/admin")
 		admin.Use(middleware.AdminOnly())
-
 		admin.GET("/users", controllers.GetAllUsers)
+
+		// AdminOrSelf routes
+		user := auth.Group("/users")
+		user.Use(middleware.AdminOrSelf())
+		user.PUT("/:id/update", controllers.UpdateUserProfile)
+		user.DELETE("/:id/delete", controllers.DeleteUserAccount)
 	}
 }

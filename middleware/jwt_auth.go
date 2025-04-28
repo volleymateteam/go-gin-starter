@@ -4,15 +4,16 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	"go-gin-starter/utils"
+
+	"github.com/gin-gonic/gin"
 )
 
 func JWTAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing or invalid Authorization header"})
+			utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized)
 			c.Abort()
 			return
 		}
@@ -21,7 +22,7 @@ func JWTAuth() gin.HandlerFunc {
 
 		claims, err := utils.ParseJWT(tokenStr)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			utils.RespondError(c, http.StatusUnauthorized, utils.ErrInvalidToken)
 			c.Abort()
 			return
 		}

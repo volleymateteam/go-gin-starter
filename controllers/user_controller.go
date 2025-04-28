@@ -242,3 +242,58 @@ func GetAllUsers(c *gin.Context) {
 		"current_page": page,
 	}, "Users fetched successfully")
 }
+
+func UpdateUserProfile(c *gin.Context) {
+	userIDParam := c.Param("id")
+	targetUserID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, "Invalid user ID")
+		return
+	}
+
+	var input struct {
+		Username string `json:"username" binding:"omitempty,min=3,max=20"`
+		Email    string `json:"email" binding:"omitempty,email"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	user, err := services.GetUserByID(targetUserID)
+	if err != nil {
+		utils.RespondError(c, http.StatusNotFound, "User not found")
+		return
+	}
+
+	if input.Username != "" {
+		user.Username = input.Username
+	}
+	if input.Email != "" {
+		user.Email = input.Email
+	}
+
+	if err := services.UpdateUser(user); err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, "Failed to update user")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User updated successfully"})
+}
+
+func DeleteUserAccount(c *gin.Context) {
+	userIDParam := c.Param("id")
+	targetUserID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, "Invalid user ID")
+		return
+	}
+
+	err = services.DeleteUserByID(targetUserID)
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, "Failed to delete user")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
+}

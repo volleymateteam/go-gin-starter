@@ -15,7 +15,7 @@ func ErrorRecovery() gin.HandlerFunc {
 		defer func() {
 			if rec := recover(); rec != nil {
 				log.Printf("[PANIC RECOVERED] %v\n", rec)
-				utils.RespondError(c, http.StatusInternalServerError, "Internal Server Error")
+				utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 			}
 		}()
 		c.Next()
