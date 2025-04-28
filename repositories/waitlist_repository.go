@@ -23,11 +23,11 @@ func IsEmailAlreadyInWaitlist(email string) (bool, error) {
 	return count > 0, nil
 }
 
-// GetAllWaitlistEmails retrieves all waitlist emails
-func GetAllWaitlistEmails() ([]string, error) {
-	var emails []string
-	if err := database.DB.Model(&models.WaitlistEntry{}).Pluck("email", &emails).Error; err != nil {
+// GetAllWaitlistEntries retrieves all waitlist records (ID, Email, Source)
+func GetAllWaitlistEntries() ([]models.WaitlistEntry, error) {
+	var entries []models.WaitlistEntry
+	if err := database.DB.Find(&entries).Error; err != nil {
 		return nil, err
 	}
-	return emails, nil
+	return entries, nil
 }

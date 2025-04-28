@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"go-gin-starter/dto"
 	"go-gin-starter/services"
 	"go-gin-starter/utils"
 	"net/http"
@@ -8,33 +9,30 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SubmitWaitlist handles a new waitlist entry
+// SubmitWaitlist handles POST /api/waitlist/submit
 func SubmitWaitlist(c *gin.Context) {
-	var input struct {
-		Email  string `json:"email" binding:"required,email"`
-		Source string `json:"source"` // Optional
-	}
-
+	var input dto.CreateWaitlistEntryInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidInput)
 		return
 	}
 
-	if err := services.SubmitWaitlistEntry(input.Email, input.Source); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+	err := services.SubmitWaitlistEntry(input.Email, input.Source)
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgWaitlistSuccess)
+	utils.RespondSuccess(c, http.StatusCreated, nil, utils.MsgWaitlistSubmitted)
 }
 
-// GetAllWaitlist handles admin viewing of waitlist entries
+// GetAllWaitlist handles GET /api/admin/waitlist
 func GetAllWaitlist(c *gin.Context) {
-	emails, err := services.GetAllWaitlistEntries()
+	entries, err := services.GetAllWaitlistEntries()
 	if err != nil {
 		utils.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, gin.H{"waitlist_emails": emails}, utils.MsgWaitlistSuccess)
+	utils.RespondSuccess(c, http.StatusOK, entries, utils.MsgWaitlistFetched)
 }
