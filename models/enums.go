@@ -1,6 +1,7 @@
 package models
 
 type RoleEnum string
+type GenderEnum string
 
 const (
 	RoleSuperAdmin     RoleEnum = "super_admin"
@@ -12,10 +13,42 @@ const (
 	RolePlayer         RoleEnum = "player"
 )
 
-type GenderEnum string
-
 const (
 	GenderMale   GenderEnum = "male"
 	GenderFemale GenderEnum = "female"
 	GenderOther  GenderEnum = "other"
 )
+
+var AllRoles = []RoleEnum{
+	RoleSuperAdmin,
+	RoleAdmin,
+	RolePresident,
+	RoleHeadCoach,
+	RoleAssistantCoach,
+	RoleScoutman,
+	RolePlayer,
+}
+
+var AllGenders = []GenderEnum{
+	GenderMale,
+	GenderFemale,
+	GenderOther,
+}
+
+func IsValidRole(r RoleEnum) bool {
+	switch r {
+	case RoleSuperAdmin, RoleAdmin, RolePresident, RoleHeadCoach, RoleAssistantCoach, RoleScoutman, RolePlayer:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsValidGender(g GenderEnum) bool {
+	switch g {
+	case GenderMale, GenderFemale, GenderOther:
+		return true
+	default:
+		return false
+	}
+}

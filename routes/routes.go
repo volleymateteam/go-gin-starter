@@ -31,6 +31,8 @@ func SetupRoutes(router *gin.Engine) {
 		admin := auth.Group("/admin")
 		admin.Use(middleware.AdminOnly())
 		admin.GET("/users", controllers.GetAllUsers)
+		admin.PUT("/users/:id", controllers.UpdateUserByAdmin)
+		admin.DELETE("/users/:id", controllers.DeleteUserByAdmin)
 
 		// AdminOrSelf routes
 		user := auth.Group("/users")

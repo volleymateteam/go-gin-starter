@@ -2,8 +2,11 @@ package services
 
 import (
 	"go-gin-starter/database"
+	"go-gin-starter/dto"
 	"go-gin-starter/models"
+	"go-gin-starter/repositories"
 	"go-gin-starter/utils"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -94,4 +97,33 @@ func GetUsersWithPagination(page int, limit int) ([]models.User, int64, error) {
 	}
 
 	return users, totalUsers, nil
+}
+
+// AdminUpdateUser updates user fields selectively
+func AdminUpdateUser(id uuid.UUID, input *dto.AdminUpdateUserInput) (*models.User, error) {
+	user, err := repositories.FindUserByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if input.Username != "" {
+		user.Username = input.Username
+	}
+	if input.Email != "" {
+		user.Email = input.Email
+	}
+	if input.Gender != "" {
+		user.Gender = input.Gender
+	}
+	if input.Role != "" {
+		user.Role = input.Role
+	}
+
+	user.UpdatedAt = time.Now()
+
+	if err := repositories.UpdateUser(user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
