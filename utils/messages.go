@@ -31,4 +31,5 @@ const (
 	MsgAvatarUploaded    = "Avatar uploaded successfully"
 	MsgResetTokenCreated = "Reset token generated successfully"
 	MsgPasswordReset     = "Password reset successfully"
+	MsgUsersFetched      = "Users fetched successfully"
 )

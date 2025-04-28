@@ -16,19 +16,19 @@ import (
 func GetProfile(c *gin.Context) {
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		utils.RespondError(c, http.StatusUnauthorized, "Unauthorized")
+		utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized)
 		return
 	}
 
 	userID, ok := userIDInterface.(uuid.UUID)
 	if !ok {
-		utils.RespondError(c, http.StatusInternalServerError, "Invalid user ID")
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInvalidUserID)
 		return
 	}
 
 	user, err := services.GetUserByID(userID)
 	if err != nil {
-		utils.RespondError(c, http.StatusNotFound, "User not found")
+		utils.RespondError(c, http.StatusNotFound, utils.ErrUserNotFound)
 		return
 	}
 
@@ -42,7 +42,7 @@ func GetProfile(c *gin.Context) {
 		CreatedAt: user.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
 	}
-	utils.RespondSuccess(c, response, "User profile retrieved successfully")
+	utils.RespondSuccess(c, http.StatusOK, response, utils.MsgProfileFetched)
 }
 
 func UpdateProfile(c *gin.Context) {
@@ -54,19 +54,19 @@ func UpdateProfile(c *gin.Context) {
 
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		utils.RespondError(c, http.StatusUnauthorized, "Unauthorized")
+		utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized)
 		return
 	}
 
 	userID, ok := userIDInterface.(uuid.UUID)
 	if !ok {
-		utils.RespondError(c, http.StatusInternalServerError, "Invalid user ID")
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInvalidUserID)
 		return
 	}
 
 	user, err := services.GetUserByID(userID)
 	if err != nil {
-		utils.RespondError(c, http.StatusNotFound, "User not found")
+		utils.RespondError(c, http.StatusNotFound, utils.ErrUserNotFound)
 		return
 	}
 
@@ -82,7 +82,7 @@ func UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	utils.RespondSuccess(c, nil, "Profile updated successfully")
+	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgUserUpdated)
 }
 
 func ChangePassword(c *gin.Context) {
@@ -94,24 +94,24 @@ func ChangePassword(c *gin.Context) {
 
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		utils.RespondError(c, http.StatusUnauthorized, "Unauthorized")
+		utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized)
 		return
 	}
 
 	userID, ok := userIDInterface.(uuid.UUID)
 	if !ok {
-		utils.RespondError(c, http.StatusInternalServerError, "Invalid user ID")
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInvalidUserID)
 		return
 	}
 
 	user, err := services.GetUserByID(userID)
 	if err != nil {
-		utils.RespondError(c, http.StatusNotFound, "User not found")
+		utils.RespondError(c, http.StatusNotFound, utils.ErrUserNotFound)
 		return
 	}
 
 	if !utils.CheckPasswordHash(input.OldPassword, user.Password) {
-		utils.RespondError(c, http.StatusBadRequest, "Invalid old password")
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrPasswordMismatch)
 		return
 	}
 
@@ -128,19 +128,19 @@ func ChangePassword(c *gin.Context) {
 		return
 	}
 
-	utils.RespondSuccess(c, nil, "Password changed successfully")
+	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgPasswordChanged)
 }
 
 func DeleteProfile(c *gin.Context) {
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		utils.RespondError(c, http.StatusUnauthorized, "Unauthorized")
+		utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized)
 		return
 	}
 
 	userID, ok := userIDInterface.(uuid.UUID)
 	if !ok {
-		utils.RespondError(c, http.StatusInternalServerError, "Invalid user ID")
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInvalidUserID)
 		return
 	}
 
@@ -149,25 +149,25 @@ func DeleteProfile(c *gin.Context) {
 		return
 	}
 
-	utils.RespondSuccess(c, nil, "Profile deleted successfully")
+	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgUserDeleted)
 }
 
 func UploadAvatar(c *gin.Context) {
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		utils.RespondError(c, http.StatusUnauthorized, "Unauthorized")
+		utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized)
 		return
 	}
 
 	userID, ok := userIDInterface.(uuid.UUID)
 	if !ok {
-		utils.RespondError(c, http.StatusInternalServerError, "Invalid user ID")
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInvalidUserID)
 		return
 	}
 
 	user, err := services.GetUserByID(userID)
 	if err != nil {
-		utils.RespondError(c, http.StatusNotFound, "User not found")
+		utils.RespondError(c, http.StatusNotFound, utils.ErrUserNotFound)
 		return
 	}
 
@@ -179,13 +179,13 @@ func UploadAvatar(c *gin.Context) {
 
 	const maxAvatarSize = 2 * 1024 * 1024
 	if file.Size > maxAvatarSize {
-		utils.RespondError(c, http.StatusBadRequest, "Avatar file is too large. Max size is 2MB")
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrAvatarTooLarge)
 		return
 	}
 
 	ext := filepath.Ext(file.Filename)
 	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
-		utils.RespondError(c, http.StatusBadRequest, "Invalid file format, only .jpg, .jpeg, .png allowed")
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidFileType)
 		return
 	}
 
@@ -193,7 +193,7 @@ func UploadAvatar(c *gin.Context) {
 	savePath := filepath.Join("uploads/avatars", newFileName)
 
 	if err := c.SaveUploadedFile(file, savePath); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, "Failed to upload avatar")
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrUploadFailed)
 		return
 	}
 
@@ -203,7 +203,7 @@ func UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	utils.RespondSuccess(c, gin.H{"avatar_url": "/uploads/avatars/" + newFileName}, "Avatar uploaded successfully")
+	utils.RespondSuccess(c, http.StatusOK, gin.H{"avatar_url": "/uploads/avatars/" + newFileName}, utils.MsgAvatarUploaded)
 }
 
 func GetAllUsers(c *gin.Context) {
@@ -235,19 +235,19 @@ func GetAllUsers(c *gin.Context) {
 
 	totalPages := (int(total) + limit - 1) / limit
 
-	utils.RespondSuccess(c, gin.H{
+	utils.RespondSuccess(c, http.StatusOK, gin.H{
 		"users":        userResponses,
 		"total_users":  total,
 		"total_pages":  totalPages,
 		"current_page": page,
-	}, "Users fetched successfully")
+	}, utils.MsgUsersFetched)
 }
 
 func UpdateUserProfile(c *gin.Context) {
 	userIDParam := c.Param("id")
 	targetUserID, err := uuid.Parse(userIDParam)
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, "Invalid user ID")
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
 		return
 	}
 
@@ -262,7 +262,7 @@ func UpdateUserProfile(c *gin.Context) {
 
 	user, err := services.GetUserByID(targetUserID)
 	if err != nil {
-		utils.RespondError(c, http.StatusNotFound, "User not found")
+		utils.RespondError(c, http.StatusNotFound, utils.ErrUserNotFound)
 		return
 	}
 
@@ -274,26 +274,26 @@ func UpdateUserProfile(c *gin.Context) {
 	}
 
 	if err := services.UpdateUser(user); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, "Failed to update user")
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrDatabase)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User updated successfully"})
+	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgUserUpdated)
 }
 
 func DeleteUserAccount(c *gin.Context) {
 	userIDParam := c.Param("id")
 	targetUserID, err := uuid.Parse(userIDParam)
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, "Invalid user ID")
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
 		return
 	}
 
 	err = services.DeleteUserByID(targetUserID)
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, "Failed to delete user")
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrDatabase)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
+	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgUserDeleted)
 }
