@@ -1,8 +1,11 @@
 package utils
 
 import (
-	"golang.org/x/crypto/bcrypt"
+	"math/rand"
+	"time"
 	"unicode"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func HashPassword(password string) (string, error) {
@@ -33,4 +36,18 @@ func IsStrongPassword(pw string) bool {
 
 	lengthOK := len(pw) >= 8
 	return hasUpper && hasLower && hasDigit && hasSpecial && lengthOK
+}
+
+// New Random Password Generator
+const passwordCharset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+"
+
+var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+func GenerateRandomPassword() string {
+	length := 12
+	password := make([]byte, length)
+	for i := range password {
+		password[i] = passwordCharset[seededRand.Intn(len(passwordCharset))]
+	}
+	return string(password)
 }

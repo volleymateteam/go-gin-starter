@@ -37,4 +37,6 @@ const (
 	MsgUsersFetched      = "Users fetched successfully"
 	MsgWaitlistFetched   = "Waitlist fetched successfully"
 	MsgWaitlistSubmitted = "Waitlist submitted successfully"
+	MsgWaitlistApproved  = "Waitlist approved successfully"
+	MsgWaitlistRejected  = "Waitlist rejected successfully"
 )

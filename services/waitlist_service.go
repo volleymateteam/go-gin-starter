@@ -3,8 +3,11 @@ package services
 import (
 	"errors"
 	"go-gin-starter/dto"
+	"go-gin-starter/models"
 	"go-gin-starter/repositories"
 	"go-gin-starter/utils"
+
+	"github.com/google/uuid"
 )
 
 // SubmitWaitlistEntry handles inserting a new waitlist entry
@@ -35,4 +38,39 @@ func GetAllWaitlistEntries() ([]dto.WaitlistEntryResponse, error) {
 		})
 	}
 	return responses, nil
+}
+
+// ApproveWaitlistEntry creates a user and removes the waitlist entry
+func ApproveWaitlistEntry(id uuid.UUID) error {
+	entry, err := repositories.FindWaitlistEntryByID(id)
+	if err != nil {
+		return err
+	}
+
+	// Create user with email as username and random password
+	randomPassword := utils.GenerateRandomPassword()
+	hashedPassword, err := utils.HashPassword(randomPassword)
+	if err != nil {
+		return err
+	}
+
+	user := models.User{
+		Email:    entry.Email,
+		Username: entry.Email, // Can change later by user
+		Password: hashedPassword,
+		Role:     models.RolePlayer,
+		Gender:   models.GenderOther,
+	}
+
+	if err := repositories.CreateUser(&user); err != nil {
+		return err
+	}
+
+	// Remove waitlist entry
+	return repositories.DeleteWaitlistEntryByID(id)
+}
+
+// RejectWaitlistEntry removes the waitlist entry
+func RejectWaitlistEntry(id uuid.UUID) error {
+	return repositories.DeleteWaitlistEntryByID(id)
 }

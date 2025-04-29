@@ -1,38 +1,54 @@
 package controllers
 
 import (
-	"go-gin-starter/dto"
 	"go-gin-starter/services"
 	"go-gin-starter/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
-// SubmitWaitlist handles POST /api/waitlist/submit
-func SubmitWaitlist(c *gin.Context) {
-	var input dto.CreateWaitlistEntryInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidInput)
-		return
-	}
-
-	err := services.SubmitWaitlistEntry(input.Email, input.Source)
+// GetAllWaitlist handles GET /admin/waitlist
+func GetAllWaitlist(c *gin.Context) {
+	waitlist, err := services.GetAllWaitlistEntries()
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, err.Error())
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrDatabase)
 		return
 	}
-
-	utils.RespondSuccess(c, http.StatusCreated, nil, utils.MsgWaitlistSubmitted)
+	utils.RespondSuccess(c, http.StatusOK, waitlist, utils.MsgWaitlistFetched)
 }
 
-// GetAllWaitlist handles GET /api/admin/waitlist
-func GetAllWaitlist(c *gin.Context) {
-	entries, err := services.GetAllWaitlistEntries()
+// ApproveWaitlistEntry approves a waitlist entry and creates a user
+func ApproveWaitlistEntry(c *gin.Context) {
+	idParam := c.Param("id")
+	entryID, err := uuid.Parse(idParam)
 	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		return
+	}
+
+	if err := services.ApproveWaitlistEntry(entryID); err != nil {
 		utils.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, entries, utils.MsgWaitlistFetched)
+	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgWaitlistApproved)
+}
+
+// RejectWaitlistEntry rejects a waitlist entry
+func RejectWaitlistEntry(c *gin.Context) {
+	idParam := c.Param("id")
+	entryID, err := uuid.Parse(idParam)
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		return
+	}
+
+	if err := services.RejectWaitlistEntry(entryID); err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgWaitlistRejected)
 }
