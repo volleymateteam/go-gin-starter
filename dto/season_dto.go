@@ -3,6 +3,8 @@ package dto
 import (
 	"go-gin-starter/models"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // CreateSeasonInput defines the fields for creating a season
@@ -31,15 +33,15 @@ type UpdateSeasonInput struct {
 
 // SeasonResponse defines the structure for returning a season
 type SeasonResponse struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	Country    string `json:"country"`
-	Gender     string `json:"gender"`
-	SeasonType string `json:"season_type"`
-	SeasonYear string `json:"season_year"`
-	Round      string `json:"round"`
-	StartDate  string `json:"start_date,omitempty"`
-	EndDate    string `json:"end_date,omitempty"`
-	CreatedAt  string `json:"created_at"`
-	UpdatedAt  string `json:"updated_at"`
+	ID         uuid.UUID             `json:"id"`
+	Name       models.SeasonNameEnum `json:"name"`
+	Country    models.CountryEnum    `json:"country"`
+	Gender     models.GenderEnum     `json:"gender"`
+	SeasonType models.SeasonTypeEnum `json:"season_type"`
+	SeasonYear string                `json:"season_year"`
+	StartDate  *time.Time            `json:"start_date,omitempty"`
+	EndDate    *time.Time            `json:"end_date,omitempty"`
+	Round      models.RoundEnum      `json:"round"`
+	CreatedAt  time.Time             `json:"created_at"`
+	UpdatedAt  time.Time             `json:"updated_at"`
 }

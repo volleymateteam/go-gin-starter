@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// CreateSeason creates a new season
-func CreateSeason(input *dto.CreateSeasonInput) (*models.Season, error) {
+// CreateSeasonService creates a new season
+func CreateSeasonService(input *dto.CreateSeasonInput) (*dto.SeasonResponse, error) {
 	season := models.Season{
 		Name:       input.Name,
 		Country:    input.Country,
@@ -26,21 +26,74 @@ func CreateSeason(input *dto.CreateSeasonInput) (*models.Season, error) {
 	if err := repositories.CreateSeason(&season); err != nil {
 		return nil, err
 	}
-	return &season, nil
+
+	response := dto.SeasonResponse{
+		ID:         season.ID,
+		Name:       season.Name,
+		Country:    season.Country,
+		Gender:     season.Gender,
+		SeasonType: season.SeasonType,
+		SeasonYear: season.SeasonYear,
+		StartDate:  season.StartDate,
+		EndDate:    season.EndDate,
+		Round:      season.Round,
+		CreatedAt:  season.CreatedAt,
+		UpdatedAt:  season.UpdatedAt,
+	}
+	return &response, nil
 }
 
-// GetAllSeasons returns all seasons
-func GetAllSeasons() ([]models.Season, error) {
-	return repositories.GetAllSeasons()
+// GetAllSeasonsService returns all seasons
+func GetAllSeasonsService() ([]dto.SeasonResponse, error) {
+	seasons, err := repositories.GetAllSeasons()
+	if err != nil {
+		return nil, err
+	}
+
+	var responses []dto.SeasonResponse
+	for _, season := range seasons {
+		responses = append(responses, dto.SeasonResponse{
+			ID:         season.ID,
+			Name:       season.Name,
+			Country:    season.Country,
+			Gender:     season.Gender,
+			SeasonType: season.SeasonType,
+			SeasonYear: season.SeasonYear,
+			StartDate:  season.StartDate,
+			EndDate:    season.EndDate,
+			Round:      season.Round,
+			CreatedAt:  season.CreatedAt,
+			UpdatedAt:  season.UpdatedAt,
+		})
+	}
+	return responses, nil
 }
 
-// GetSeasonByID returns a specific season by ID
-func GetSeasonByID(id uuid.UUID) (*models.Season, error) {
-	return repositories.GetSeasonByID(id)
+// GetSeasonByIDService returns a specific season by ID
+func GetSeasonByIDService(id uuid.UUID) (*dto.SeasonResponse, error) {
+	season, err := repositories.GetSeasonByID(id)
+	if err != nil {
+		return nil, errors.New(utils.ErrSeasonNotFound)
+	}
+
+	response := dto.SeasonResponse{
+		ID:         season.ID,
+		Name:       season.Name,
+		Country:    season.Country,
+		Gender:     season.Gender,
+		SeasonType: season.SeasonType,
+		SeasonYear: season.SeasonYear,
+		StartDate:  season.StartDate,
+		EndDate:    season.EndDate,
+		Round:      season.Round,
+		CreatedAt:  season.CreatedAt,
+		UpdatedAt:  season.UpdatedAt,
+	}
+	return &response, nil
 }
 
-// UpdateSeason updates an existing season
-func UpdateSeason(id uuid.UUID, input *dto.UpdateSeasonInput) (*models.Season, error) {
+// UpdateSeasonService updates an existing season
+func UpdateSeasonService(id uuid.UUID, input *dto.UpdateSeasonInput) (*dto.SeasonResponse, error) {
 	season, err := repositories.GetSeasonByID(id)
 	if err != nil {
 		return nil, errors.New(utils.ErrSeasonNotFound)
@@ -74,10 +127,24 @@ func UpdateSeason(id uuid.UUID, input *dto.UpdateSeasonInput) (*models.Season, e
 	if err := repositories.UpdateSeason(season); err != nil {
 		return nil, err
 	}
-	return season, nil
+
+	response := dto.SeasonResponse{
+		ID:         season.ID,
+		Name:       season.Name,
+		Country:    season.Country,
+		Gender:     season.Gender,
+		SeasonType: season.SeasonType,
+		SeasonYear: season.SeasonYear,
+		StartDate:  season.StartDate,
+		EndDate:    season.EndDate,
+		Round:      season.Round,
+		CreatedAt:  season.CreatedAt,
+		UpdatedAt:  season.UpdatedAt,
+	}
+	return &response, nil
 }
 
-// DeleteSeason removes a season
-func DeleteSeason(id uuid.UUID) error {
+// DeleteSeasonService removes a season
+func DeleteSeasonService(id uuid.UUID) error {
 	return repositories.DeleteSeason(id)
 }
