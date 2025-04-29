@@ -5,6 +5,7 @@ import (
 	"go-gin-starter/services"
 	"go-gin-starter/utils"
 	"net/http"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -20,7 +21,7 @@ func CreateSeason(c *gin.Context) {
 
 	season, err := services.CreateSeasonService(&input)
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
 	}
 
@@ -70,7 +71,7 @@ func UpdateSeason(c *gin.Context) {
 
 	season, err := services.UpdateSeasonService(id, &input)
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
 	}
 
@@ -86,9 +87,53 @@ func DeleteSeason(c *gin.Context) {
 	}
 
 	if err := services.DeleteSeasonService(id); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
 	}
 
 	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgSeasonDeleted)
+}
+
+// UploadSeasonLogo handler for uploading a season logo
+func UploadSeasonLogo(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		return
+	}
+
+	file, err := c.FormFile("logo")
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrFileUploadRequired)
+		return
+	}
+
+	if file.Size > 2*1024*1024 {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrLogoTooLarge)
+		return
+	}
+
+	ext := filepath.Ext(file.Filename)
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidFileType)
+		return
+	}
+
+	newFileName := uuid.New().String() + ext
+	savePath := filepath.Join("uploads/logos/seasons", newFileName)
+
+	if err := c.SaveUploadedFile(file, savePath); err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrUploadFailed)
+		return
+	}
+
+	// Update in DB
+	if err := services.UpdateSeasonLogoService(id, newFileName); err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrDatabase)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, gin.H{
+		"logo_url": "/uploads/logos/seasons/" + newFileName,
+	}, utils.MsgLogoUploaded)
 }

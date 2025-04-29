@@ -59,6 +59,7 @@ func SetupRoutes(router *gin.Engine) {
 			admin.GET("/seasons/:id", controllers.GetSeasonByID)
 			admin.PUT("/seasons/:id", controllers.UpdateSeason)
 			admin.DELETE("/seasons/:id", controllers.DeleteSeason)
+			admin.PATCH("/seasons/:id/upload-logo", controllers.UploadSeasonLogo)
 		}
 
 		// AdminOrSelf routes

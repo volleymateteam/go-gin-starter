@@ -21,6 +21,7 @@ func CreateSeasonService(input *dto.CreateSeasonInput) (*dto.SeasonResponse, err
 		Round:      input.Round,
 		StartDate:  input.StartDate,
 		EndDate:    input.EndDate,
+		Logo:       "defaults/default-season-logo.png",
 	}
 
 	if err := repositories.CreateSeason(&season); err != nil {
@@ -37,6 +38,7 @@ func CreateSeasonService(input *dto.CreateSeasonInput) (*dto.SeasonResponse, err
 		StartDate:  season.StartDate,
 		EndDate:    season.EndDate,
 		Round:      season.Round,
+		LogoURL:    "/uploads/logos/" + season.Logo,
 		CreatedAt:  season.CreatedAt,
 		UpdatedAt:  season.UpdatedAt,
 	}
@@ -62,6 +64,7 @@ func GetAllSeasonsService() ([]dto.SeasonResponse, error) {
 			StartDate:  season.StartDate,
 			EndDate:    season.EndDate,
 			Round:      season.Round,
+			LogoURL:    "/uploads/logos/" + season.Logo,
 			CreatedAt:  season.CreatedAt,
 			UpdatedAt:  season.UpdatedAt,
 		})
@@ -86,6 +89,7 @@ func GetSeasonByIDService(id uuid.UUID) (*dto.SeasonResponse, error) {
 		StartDate:  season.StartDate,
 		EndDate:    season.EndDate,
 		Round:      season.Round,
+		LogoURL:    "/uploads/logos/" + season.Logo,
 		CreatedAt:  season.CreatedAt,
 		UpdatedAt:  season.UpdatedAt,
 	}
@@ -138,6 +142,7 @@ func UpdateSeasonService(id uuid.UUID, input *dto.UpdateSeasonInput) (*dto.Seaso
 		StartDate:  season.StartDate,
 		EndDate:    season.EndDate,
 		Round:      season.Round,
+		LogoURL:    "/uploads/logos/" + season.Logo,
 		CreatedAt:  season.CreatedAt,
 		UpdatedAt:  season.UpdatedAt,
 	}
@@ -147,4 +152,15 @@ func UpdateSeasonService(id uuid.UUID, input *dto.UpdateSeasonInput) (*dto.Seaso
 // DeleteSeasonService removes a season
 func DeleteSeasonService(id uuid.UUID) error {
 	return repositories.DeleteSeason(id)
+}
+
+// UpdateSeasonLogoService updates the logo of a season
+func UpdateSeasonLogoService(seasonID uuid.UUID, logoFilename string) error {
+	season, err := repositories.GetSeasonByID(seasonID)
+	if err != nil {
+		return errors.New(utils.ErrSeasonNotFound)
+	}
+
+	season.Logo = logoFilename
+	return repositories.UpdateSeason(season)
 }
