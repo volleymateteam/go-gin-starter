@@ -42,12 +42,24 @@ func SetupRoutes(router *gin.Engine) {
 			admin.POST("/waitlist/:id/approve", controllers.ApproveWaitlistEntry)
 			admin.DELETE("/waitlist/:id/reject", controllers.RejectWaitlistEntry)
 
+			// Admin Team Management
+			admin.POST("/teams", controllers.CreateTeam)
+			admin.GET("/teams", controllers.GetAllTeams)
+			admin.GET("/teams/:id", controllers.GetTeamByID)
+			admin.PUT("/teams/:id", controllers.UpdateTeam)
+			admin.DELETE("/teams/:id", controllers.DeleteTeam)
+			admin.PATCH("/teams/:id/upload-logo", controllers.UploadTeamLogo)
+			// admin.POST("/teams/:id/assign", controllers.AssignTeamToUser)
+			// admin.POST("/teams/:id/remove", controllers.RemoveTeamFromUser)
+			// admin.GET("/teams/:id/members", controllers.GetTeamMembers)
+
 			// Admin Season Management
 			admin.POST("/seasons", controllers.CreateSeason)
 			admin.GET("/seasons", controllers.GetAllSeasons)
 			admin.GET("/seasons/:id", controllers.GetSeasonByID)
 			admin.PUT("/seasons/:id", controllers.UpdateSeason)
 			admin.DELETE("/seasons/:id", controllers.DeleteSeason)
+			admin.PATCH("/seasons/:id/upload-logo", controllers.UploadSeasonLogo)
 		}
 
 		// AdminOrSelf routes

@@ -1,0 +1,192 @@
+package controllers
+
+import (
+	"go-gin-starter/dto"
+	"go-gin-starter/services"
+	"go-gin-starter/utils"
+	"net/http"
+	"path/filepath"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+)
+
+// CreateTeam handles POST /api/admin/teams
+func CreateTeam(c *gin.Context) {
+	var input dto.CreateTeamInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidInput)
+		return
+	}
+
+	team, err := services.CreateTeamService(&input)
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternalServer)
+		return
+	}
+
+	response := dto.TeamResponse{
+		ID:        team.ID,
+		Name:      team.Name,
+		Country:   team.Country,
+		SeasonID:  team.SeasonID,
+		LogoURL:   "/uploads/logos/" + team.Logo,
+		CreatedAt: team.CreatedAt,
+		UpdatedAt: team.UpdatedAt,
+	}
+
+	utils.RespondSuccess(c, http.StatusCreated, response, utils.MsgTeamCreated)
+}
+
+// GetAllTeams handles GET /api/admin/teams
+func GetAllTeams(c *gin.Context) {
+	teams, err := services.GetAllTeamsService()
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrDatabase)
+		return
+	}
+
+	var responses []dto.TeamResponse
+	for _, team := range teams {
+		logoPath := "/uploads/logos/defaults/default-team-logo.png"
+		if team.LogoURL != "" {
+			logoPath = "/uploads/logos/" + team.LogoURL
+		}
+		responses = append(responses, dto.TeamResponse{
+			ID:        team.ID,
+			Name:      team.Name,
+			Country:   team.Country,
+			SeasonID:  team.SeasonID,
+			LogoURL:   logoPath,
+			CreatedAt: team.CreatedAt,
+			UpdatedAt: team.UpdatedAt,
+		})
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, responses, utils.MsgTeamsFetched)
+}
+
+// GetTeamByID handles GET /api/admin/teams/:id
+func GetTeamByID(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		return
+	}
+
+	team, err := services.GetTeamByIDService(id)
+	if err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrTeamNotFound)
+		return
+	}
+
+	logoPath := "/uploads/logos/defaults/default-team-logo.png"
+	if team.LogoURL != "" {
+		logoPath = "/uploads/logos/" + team.LogoURL
+	}
+
+	response := dto.TeamResponse{
+		ID:        team.ID,
+		Name:      team.Name,
+		Country:   team.Country,
+		SeasonID:  team.SeasonID,
+		LogoURL:   logoPath,
+		CreatedAt: team.CreatedAt,
+		UpdatedAt: team.UpdatedAt,
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, response, utils.MsgTeamFetched)
+}
+
+// UpdateTeam handles PUT /api/admin/teams/:id
+func UpdateTeam(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		return
+	}
+
+	var input dto.UpdateTeamInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidInput)
+		return
+	}
+
+	team, err := services.UpdateTeamService(id, &input)
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternalServer)
+		return
+	}
+
+	response := dto.TeamResponse{
+		ID:        team.ID,
+		Name:      team.Name,
+		Country:   team.Country,
+		SeasonID:  team.SeasonID,
+		LogoURL:   "/uploads/logos/" + team.LogoURL,
+		CreatedAt: team.CreatedAt,
+		UpdatedAt: team.UpdatedAt,
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, response, utils.MsgTeamUpdated)
+}
+
+// DeleteTeam handles DELETE /api/admin/teams/:id
+func DeleteTeam(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		return
+	}
+
+	if err := services.DeleteTeamService(id); err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternalServer)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgTeamDeleted)
+}
+
+// UploadTeamLogo handles PATCH /api/admin/teams/:id/upload-logo
+func UploadTeamLogo(c *gin.Context) {
+	idParam := c.Param("id")
+	teamID, err := uuid.Parse(idParam)
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		return
+	}
+
+	file, err := c.FormFile("logo")
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrFileUploadRequired)
+		return
+	}
+
+	if file.Size > 2*1024*1024 {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrLogoTooLarge)
+		return
+	}
+
+	ext := filepath.Ext(file.Filename)
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidFileType)
+		return
+	}
+
+	newFileName := uuid.New().String() + ext
+	savePath := filepath.Join("uploads/logos", newFileName)
+
+	if err := c.SaveUploadedFile(file, savePath); err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrUploadFailed)
+		return
+	}
+
+	if err := services.UpdateTeamLogoService(teamID, newFileName); err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrUploadFailed)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, gin.H{
+		"logo_url": "/uploads/logos/" + newFileName,
+	}, utils.MsgLogoUploaded)
+}
