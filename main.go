@@ -21,6 +21,7 @@ func main() {
 	database.DB.AutoMigrate(
 		&models.User{},
 		&models.WaitlistEntry{},
+		&models.Season{},
 	)
 
 	r := gin.Default()
