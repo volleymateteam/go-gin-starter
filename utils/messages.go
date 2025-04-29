@@ -21,6 +21,7 @@ const (
 	ErrDatabase              = "Database error"
 	ErrPasswordMismatch      = "Invalid old password"
 	ErrStrongPassword        = "Password must contain at least 8 characters, including uppercase, lowercase, numbers, and special characters."
+	ErrAlreadyInWaitlist     = "already in waitlist"
 )
 
 // Common success messages
@@ -34,4 +35,8 @@ const (
 	MsgResetTokenCreated = "Reset token generated successfully"
 	MsgPasswordReset     = "Password reset successfully"
 	MsgUsersFetched      = "Users fetched successfully"
+	MsgWaitlistFetched   = "Waitlist fetched successfully"
+	MsgWaitlistSubmitted = "Waitlist submitted successfully"
+	MsgWaitlistApproved  = "Waitlist approved successfully"
+	MsgWaitlistRejected  = "Waitlist rejected successfully"
 )

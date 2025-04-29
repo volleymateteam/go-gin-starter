@@ -18,7 +18,10 @@ func main() {
 	// Load environment variables and connect to the database
 	config.LoadEnv()
 	database.ConnectDB()
-	database.DB.AutoMigrate(&models.User{})
+	database.DB.AutoMigrate(
+		&models.User{},
+		&models.WaitlistEntry{},
+	)
 
 	r := gin.Default()
 

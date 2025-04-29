@@ -10,13 +10,14 @@ import (
 func SetupRoutes(router *gin.Engine) {
 	api := router.Group("/api")
 	{
-		// Public routes (no auth)
+		// Public Routes (No authentication)
 		api.POST("/register", controllers.Register)
 		api.POST("/login", controllers.Login)
 		api.POST("/password/forgot", controllers.ForgotPassword)
 		api.POST("/password/reset", controllers.ResetPassword)
+		api.POST("/waitlist/submit", controllers.SubmitWaitlist)
 
-		// Protected routes (need JWT)
+		// Authenticated Routes (JWT required)
 		auth := api.Group("/")
 		auth.Use(middleware.JWTAuth())
 
@@ -30,14 +31,24 @@ func SetupRoutes(router *gin.Engine) {
 		// Admin-only routes
 		admin := auth.Group("/admin")
 		admin.Use(middleware.AdminOnly())
-		admin.GET("/users", controllers.GetAllUsers)
-		admin.PUT("/users/:id", controllers.UpdateUserByAdmin)
-		admin.DELETE("/users/:id", controllers.DeleteUserByAdmin)
+		{
+			// Admin User Management
+			admin.GET("/users", controllers.GetAllUsers)
+			admin.PUT("/users/:id", controllers.UpdateUserByAdmin)
+			admin.DELETE("/users/:id", controllers.DeleteUserByAdmin)
+
+			// Admin Waitlist Management
+			admin.GET("/waitlist", controllers.GetAllWaitlist)
+			admin.POST("/waitlist/:id/approve", controllers.ApproveWaitlistEntry)
+			admin.DELETE("/waitlist/:id/reject", controllers.RejectWaitlistEntry)
+		}
 
 		// AdminOrSelf routes
 		user := auth.Group("/users")
 		user.Use(middleware.AdminOrSelf())
-		user.PUT("/:id/update", controllers.UpdateUserProfile)
-		user.DELETE("/:id/delete", controllers.DeleteUserAccount)
+		{
+			user.PUT("/:id/update", controllers.UpdateUserProfile)
+			user.DELETE("/:id/delete", controllers.DeleteUserAccount)
+		}
 	}
 }
