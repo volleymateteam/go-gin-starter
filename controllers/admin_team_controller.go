@@ -25,7 +25,17 @@ func CreateTeam(c *gin.Context) {
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusCreated, team, utils.MsgTeamCreated)
+	response := dto.TeamResponse{
+		ID:        team.ID,
+		Name:      team.Name,
+		Country:   team.Country,
+		SeasonID:  team.SeasonID,
+		LogoURL:   "/uploads/logos/" + team.Logo,
+		CreatedAt: team.CreatedAt,
+		UpdatedAt: team.UpdatedAt,
+	}
+
+	utils.RespondSuccess(c, http.StatusCreated, response, utils.MsgTeamCreated)
 }
 
 // GetAllTeams handles GET /api/admin/teams
@@ -36,14 +46,13 @@ func GetAllTeams(c *gin.Context) {
 		return
 	}
 
-	var teamResponses []dto.TeamResponse
+	var responses []dto.TeamResponse
 	for _, team := range teams {
 		logoPath := "/uploads/logos/defaults/default-team-logo.png"
 		if team.LogoURL != "" {
 			logoPath = "/uploads/logos/" + team.LogoURL
 		}
-
-		teamResponses = append(teamResponses, dto.TeamResponse{
+		responses = append(responses, dto.TeamResponse{
 			ID:        team.ID,
 			Name:      team.Name,
 			Country:   team.Country,
@@ -54,7 +63,7 @@ func GetAllTeams(c *gin.Context) {
 		})
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, teamResponses, utils.MsgTeamsFetched)
+	utils.RespondSuccess(c, http.StatusOK, responses, utils.MsgTeamsFetched)
 }
 
 // GetTeamByID handles GET /api/admin/teams/:id
@@ -109,7 +118,17 @@ func UpdateTeam(c *gin.Context) {
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, team, utils.MsgTeamUpdated)
+	response := dto.TeamResponse{
+		ID:        team.ID,
+		Name:      team.Name,
+		Country:   team.Country,
+		SeasonID:  team.SeasonID,
+		LogoURL:   "/uploads/logos/" + team.LogoURL,
+		CreatedAt: team.CreatedAt,
+		UpdatedAt: team.UpdatedAt,
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, response, utils.MsgTeamUpdated)
 }
 
 // DeleteTeam handles DELETE /api/admin/teams/:id
@@ -120,8 +139,7 @@ func DeleteTeam(c *gin.Context) {
 		return
 	}
 
-	err = services.DeleteTeamService(id)
-	if err != nil {
+	if err := services.DeleteTeamService(id); err != nil {
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
 	}
@@ -129,17 +147,12 @@ func DeleteTeam(c *gin.Context) {
 	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgTeamDeleted)
 }
 
+// UploadTeamLogo handles PATCH /api/admin/teams/:id/upload-logo
 func UploadTeamLogo(c *gin.Context) {
 	idParam := c.Param("id")
 	teamID, err := uuid.Parse(idParam)
 	if err != nil {
 		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
-		return
-	}
-
-	team, err := services.GetTeamByIDService(teamID)
-	if err != nil {
-		utils.RespondError(c, http.StatusNotFound, utils.ErrTeamNotFound)
 		return
 	}
 
@@ -168,7 +181,6 @@ func UploadTeamLogo(c *gin.Context) {
 		return
 	}
 
-	team.LogoURL = newFileName
 	if err := services.UpdateTeamLogoService(teamID, newFileName); err != nil {
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrUploadFailed)
 		return
