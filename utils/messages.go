@@ -22,6 +22,7 @@ const (
 	ErrPasswordMismatch      = "Invalid old password"
 	ErrStrongPassword        = "Password must contain at least 8 characters, including uppercase, lowercase, numbers, and special characters."
 	ErrAlreadyInWaitlist     = "already in waitlist"
+	ErrSeasonNotFound        = "Season not found"
 )
 
 // Common success messages
