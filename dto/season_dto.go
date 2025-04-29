@@ -42,6 +42,7 @@ type SeasonResponse struct {
 	StartDate  *time.Time            `json:"start_date,omitempty"`
 	EndDate    *time.Time            `json:"end_date,omitempty"`
 	Round      models.RoundEnum      `json:"round"`
+	LogoURL    string                `json:"logo_url"`
 	CreatedAt  time.Time             `json:"created_at"`
 	UpdatedAt  time.Time             `json:"updated_at"`
 }
