@@ -15,6 +15,7 @@ type Team struct {
 	Country  CountryEnum `gorm:"type:varchar(50);not null"`
 	Gender   GenderEnum  `gorm:"type:varchar(10);not null"`
 	SeasonID uuid.UUID   `gorm:"type:uuid;not null"` // FK to Season
+	Logo     string      `gorm:"type:varchar(255);default:'defaults/default-team.png'"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time

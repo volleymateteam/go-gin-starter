@@ -5,6 +5,7 @@ import (
 	"go-gin-starter/services"
 	"go-gin-starter/utils"
 	"net/http"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -92,4 +93,54 @@ func DeleteTeam(c *gin.Context) {
 	}
 
 	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgTeamDeleted)
+}
+
+func UploadTeamLogo(c *gin.Context) {
+	idParam := c.Param("id")
+	teamID, err := uuid.Parse(idParam)
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		return
+	}
+
+	team, err := services.GetTeamByIDService(teamID)
+	if err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrTeamNotFound)
+		return
+	}
+
+	file, err := c.FormFile("logo")
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrFileUploadRequired)
+		return
+	}
+
+	if file.Size > 2*1024*1024 {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrLogoTooLarge)
+		return
+	}
+
+	ext := filepath.Ext(file.Filename)
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidFileType)
+		return
+	}
+
+	newFileName := uuid.New().String() + ext
+	savePath := filepath.Join("uploads/logos", newFileName)
+
+	if err := c.SaveUploadedFile(file, savePath); err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrUploadFailed)
+		return
+	}
+
+	team.Logo = newFileName
+	if err := services.UpdateTeamLogoService(teamID, newFileName); err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrUploadFailed)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, gin.H{
+		"logo_url": "/uploads/logos/" + newFileName,
+	}, utils.MsgLogoUploaded)
 }

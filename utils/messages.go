@@ -26,6 +26,8 @@ const (
 	ErrSeasonAlreadyExists   = "season already exists"
 	ErrTeamNotFound          = "team not found"
 	ErrTeamAlreadyExists     = "team already exists"
+	ErrFileUploadRequired    = "file upload is required"
+	ErrLogoTooLarge          = "logo file is too large. Max size is 2MB"
 )
 
 // Common success messages
@@ -58,4 +60,5 @@ const (
 	MsgTeamMemberRemoved  = "team member removed successfully"
 	MsgTeamMemberUpdated  = "team member updated successfully"
 	MsgTeamMemberFetched  = "team member fetched successfully"
+	MsgLogoUploaded       = "logo uploaded successfully"
 )

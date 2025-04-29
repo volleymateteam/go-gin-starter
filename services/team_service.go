@@ -66,3 +66,15 @@ func UpdateTeamService(id uuid.UUID, input *dto.UpdateTeamInput) (*models.Team, 
 func DeleteTeamService(id uuid.UUID) error {
 	return repositories.DeleteTeam(id)
 }
+
+// UpdateTeamLogoService updates the logo of a team
+func UpdateTeamLogoService(id uuid.UUID, logoFilename string) error {
+	team, err := repositories.GetTeamByID(id)
+	if err != nil {
+		return errors.New(utils.ErrTeamNotFound)
+	}
+
+	team.Logo = logoFilename
+
+	return repositories.UpdateTeam(team)
+}

@@ -48,6 +48,7 @@ func SetupRoutes(router *gin.Engine) {
 			admin.GET("/teams/:id", controllers.GetTeamByID)
 			admin.PUT("/teams/:id", controllers.UpdateTeam)
 			admin.DELETE("/teams/:id", controllers.DeleteTeam)
+			admin.PATCH("/teams/:id/upload-logo", controllers.UploadTeamLogo)
 			// admin.POST("/teams/:id/assign", controllers.AssignTeamToUser)
 			// admin.POST("/teams/:id/remove", controllers.RemoveTeamFromUser)
 			// admin.GET("/teams/:id/members", controllers.GetTeamMembers)
