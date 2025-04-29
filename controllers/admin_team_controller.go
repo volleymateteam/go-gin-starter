@@ -39,8 +39,8 @@ func GetAllTeams(c *gin.Context) {
 	var teamResponses []dto.TeamResponse
 	for _, team := range teams {
 		logoPath := "/uploads/logos/defaults/default-team-logo.png"
-		if team.Logo != "" {
-			logoPath = "/uploads/logos/" + team.Logo
+		if team.LogoURL != "" {
+			logoPath = "/uploads/logos/" + team.LogoURL
 		}
 
 		teamResponses = append(teamResponses, dto.TeamResponse{
@@ -72,8 +72,8 @@ func GetTeamByID(c *gin.Context) {
 	}
 
 	logoPath := "/uploads/logos/defaults/default-team-logo.png"
-	if team.Logo != "" {
-		logoPath = "/uploads/logos/" + team.Logo
+	if team.LogoURL != "" {
+		logoPath = "/uploads/logos/" + team.LogoURL
 	}
 
 	response := dto.TeamResponse{
@@ -168,7 +168,7 @@ func UploadTeamLogo(c *gin.Context) {
 		return
 	}
 
-	team.Logo = newFileName
+	team.LogoURL = newFileName
 	if err := services.UpdateTeamLogoService(teamID, newFileName); err != nil {
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrUploadFailed)
 		return

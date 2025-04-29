@@ -28,17 +28,32 @@ func CreateTeamService(input *dto.CreateTeamInput) (*models.Team, error) {
 }
 
 // GetAllTeamsService fetches all teams
-func GetAllTeamsService() ([]models.Team, error) {
-	return repositories.GetAllTeams()
+func GetTeamByIDService(id uuid.UUID) (*dto.TeamResponse, error) {
+	team, err := repositories.GetTeamByID(id)
+	if err != nil {
+		return nil, errors.New(utils.ErrTeamNotFound)
+	}
+	response := mapTeamToResponse(team)
+	return &response, nil
 }
 
 // GetTeamByIDService fetches a team by ID
-func GetTeamByIDService(id uuid.UUID) (*models.Team, error) {
-	return repositories.GetTeamByID(id)
+func GetAllTeamsService() ([]dto.TeamResponse, error) {
+	teams, err := repositories.GetAllTeams()
+	if err != nil {
+		return nil, err
+	}
+
+	var responses []dto.TeamResponse
+	for _, team := range teams {
+		responses = append(responses, mapTeamToResponse(&team))
+	}
+
+	return responses, nil
 }
 
 // UpdateTeamService updates a team
-func UpdateTeamService(id uuid.UUID, input *dto.UpdateTeamInput) (*models.Team, error) {
+func UpdateTeamService(id uuid.UUID, input *dto.UpdateTeamInput) (*dto.TeamResponse, error) {
 	team, err := repositories.GetTeamByID(id)
 	if err != nil {
 		return nil, errors.New(utils.ErrTeamNotFound)
@@ -60,7 +75,9 @@ func UpdateTeamService(id uuid.UUID, input *dto.UpdateTeamInput) (*models.Team, 
 	if err := repositories.UpdateTeam(team); err != nil {
 		return nil, err
 	}
-	return team, nil
+
+	response := mapTeamToResponse(team)
+	return &response, nil
 }
 
 // DeleteTeamService deletes a team by ID
@@ -78,4 +95,21 @@ func UpdateTeamLogoService(id uuid.UUID, logoFilename string) error {
 	team.Logo = logoFilename
 
 	return repositories.UpdateTeam(team)
+}
+
+func mapTeamToResponse(team *models.Team) dto.TeamResponse {
+	logo := team.Logo
+	if logo == "" {
+		logo = "defaults/default-team-logo.png"
+	}
+
+	return dto.TeamResponse{
+		ID:        team.ID,
+		Name:      team.Name,
+		Country:   team.Country,
+		SeasonID:  team.SeasonID,
+		LogoURL:   "/uploads/logos/" + logo,
+		CreatedAt: team.CreatedAt,
+		UpdatedAt: team.UpdatedAt,
+	}
 }
