@@ -22,6 +22,7 @@ func main() {
 		&models.User{},
 		&models.WaitlistEntry{},
 		&models.Season{},
+		&models.Team{},
 	)
 
 	r := gin.Default()
