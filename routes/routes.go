@@ -41,6 +41,13 @@ func SetupRoutes(router *gin.Engine) {
 			admin.GET("/waitlist", controllers.GetAllWaitlist)
 			admin.POST("/waitlist/:id/approve", controllers.ApproveWaitlistEntry)
 			admin.DELETE("/waitlist/:id/reject", controllers.RejectWaitlistEntry)
+
+			// Admin Season Management
+			admin.POST("/seasons", controllers.CreateSeason)
+			admin.GET("/seasons", controllers.GetAllSeasons)
+			admin.GET("/seasons/:id", controllers.GetSeasonByID)
+			admin.PUT("/seasons/:id", controllers.UpdateSeason)
+			admin.DELETE("/seasons/:id", controllers.DeleteSeason)
 		}
 
 		// AdminOrSelf routes
