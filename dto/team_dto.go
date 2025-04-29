@@ -26,6 +26,7 @@ type TeamResponse struct {
 	Name      string             `json:"name"`
 	Country   models.CountryEnum `json:"country"`
 	SeasonID  uuid.UUID          `json:"season_id"`
+	LogoURL   string             `json:"logo_url"`
 	CreatedAt time.Time          `json:"created_at"`
 	UpdatedAt time.Time          `json:"updated_at"`
 }

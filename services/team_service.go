@@ -17,6 +17,7 @@ func CreateTeamService(input *dto.CreateTeamInput) (*models.Team, error) {
 		Country:  input.Country,
 		Gender:   input.Gender,
 		SeasonID: input.SeasonID,
+		Logo:     "defaults/default-team-logo.png",
 	}
 
 	err := repositories.CreateTeam(&team)

@@ -35,7 +35,26 @@ func GetAllTeams(c *gin.Context) {
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrDatabase)
 		return
 	}
-	utils.RespondSuccess(c, http.StatusOK, teams, utils.MsgTeamsFetched)
+
+	var teamResponses []dto.TeamResponse
+	for _, team := range teams {
+		logoPath := "/uploads/logos/defaults/default-team-logo.png"
+		if team.Logo != "" {
+			logoPath = "/uploads/logos/" + team.Logo
+		}
+
+		teamResponses = append(teamResponses, dto.TeamResponse{
+			ID:        team.ID,
+			Name:      team.Name,
+			Country:   team.Country,
+			SeasonID:  team.SeasonID,
+			LogoURL:   logoPath,
+			CreatedAt: team.CreatedAt,
+			UpdatedAt: team.UpdatedAt,
+		})
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, teamResponses, utils.MsgTeamsFetched)
 }
 
 // GetTeamByID handles GET /api/admin/teams/:id
@@ -52,7 +71,22 @@ func GetTeamByID(c *gin.Context) {
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, team, utils.MsgTeamFetched)
+	logoPath := "/uploads/logos/defaults/default-team-logo.png"
+	if team.Logo != "" {
+		logoPath = "/uploads/logos/" + team.Logo
+	}
+
+	response := dto.TeamResponse{
+		ID:        team.ID,
+		Name:      team.Name,
+		Country:   team.Country,
+		SeasonID:  team.SeasonID,
+		LogoURL:   logoPath,
+		CreatedAt: team.CreatedAt,
+		UpdatedAt: team.UpdatedAt,
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, response, utils.MsgTeamFetched)
 }
 
 // UpdateTeam handles PUT /api/admin/teams/:id
