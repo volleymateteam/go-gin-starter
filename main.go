@@ -23,6 +23,7 @@ func main() {
 		&models.WaitlistEntry{},
 		&models.Season{},
 		&models.Team{},
+		&models.Match{},
 	)
 
 	r := gin.Default()
@@ -30,6 +31,11 @@ func main() {
 	// Setup global middlewares
 	r.Use(middleware.ErrorRecovery())
 	r.Use(middleware.RequestLogger())
+
+	// Health check endpoint
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
 
 	// Setup swagger
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

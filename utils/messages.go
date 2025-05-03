@@ -28,6 +28,7 @@ const (
 	ErrTeamAlreadyExists     = "team already exists"
 	ErrFileUploadRequired    = "file upload is required"
 	ErrLogoTooLarge          = "logo file is too large. Max size is 2MB"
+	ErrMatchNotFound         = "match not found"
 )
 
 // Common success messages
@@ -61,4 +62,9 @@ const (
 	MsgTeamMemberUpdated  = "team member updated successfully"
 	MsgTeamMemberFetched  = "team member fetched successfully"
 	MsgLogoUploaded       = "logo uploaded successfully"
+	MsgMatchCreated       = "match created successfully"
+	MsgMatchesFetched     = "matches fetched successfully"
+	MsgMatchUpdated       = "match updated successfully"
+	MsgMatchDeleted       = "match deleted successfully"
+	MsgMatchFetched       = "match fetched successfully"
 )
