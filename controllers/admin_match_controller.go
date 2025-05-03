@@ -92,3 +92,33 @@ func DeleteMatch(c *gin.Context) {
 
 	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgMatchDeleted)
 }
+
+// UploadMatchVideo handles PATCH /api/admin/matches/:id/upload-video
+func UploadMatchVideo(c *gin.Context) {
+	matchID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidMatchID)
+		return
+	}
+
+	file, err := c.FormFile("video")
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrFileUploadRequired)
+		return
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrUploadFailed)
+		return
+	}
+	defer src.Close()
+
+	videoURL, err := services.UploadMatchVideoService(matchID, src, file)
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, gin.H{"video_url": videoURL}, utils.MsgVideoUploaded)
+}

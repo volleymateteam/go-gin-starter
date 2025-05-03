@@ -2,11 +2,20 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	"mime/multipart"
+	"os"
+
+	"go-gin-starter/config"
 	"go-gin-starter/dto"
 	"go-gin-starter/models"
 	"go-gin-starter/repositories"
 	"go-gin-starter/utils"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/google/uuid"
 )
 
@@ -179,4 +188,58 @@ func getTeamName(team *models.Team) string {
 		return ""
 	}
 	return team.Name
+}
+
+// UploadMatchVideoService handles uploading a match video to S3
+// Path: services/match_service.go
+func UploadMatchVideoService(matchID uuid.UUID, file multipart.File, fileHeader *multipart.FileHeader) (string, error) {
+	match, err := repositories.GetMatchByID(matchID)
+	if err != nil {
+		return "", errors.New(utils.ErrMatchNotFound)
+	}
+
+	season, err := repositories.GetSeasonByID(match.SeasonID)
+	if err != nil {
+		return "", errors.New(utils.ErrSeasonNotFound)
+	}
+
+	// Create AWS session and uploader
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(config.AWSRegion),
+		Credentials: credentials.NewStaticCredentials(
+			os.Getenv("AWS_ACCESS_KEY_ID"),
+			os.Getenv("AWS_SECRET_ACCESS_KEY"),
+			"",
+		),
+	})
+	if err != nil {
+		return "", err
+	}
+	uploader := s3manager.NewUploader(sess)
+
+	// Upload and get S3 key
+	s3Key, err := utils.UploadMatchVideoToS3(
+		uploader,
+		file,
+		fileHeader,
+		match.ID.String(),
+		season.SeasonYear,
+		string(season.Country),
+		string(season.Name),
+		string(season.Gender),
+	)
+	if err != nil {
+		return "", err
+	}
+
+	// Generate public S3 URL manually
+	videoURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", config.AWSBucketName, config.AWSRegion, s3Key)
+
+	// Save to DB
+	match.VideoURL = videoURL
+	if err := repositories.UpdateMatch(match); err != nil {
+		return "", err
+	}
+
+	return videoURL, nil
 }

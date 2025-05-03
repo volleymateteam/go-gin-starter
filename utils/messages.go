@@ -29,6 +29,7 @@ const (
 	ErrFileUploadRequired    = "file upload is required"
 	ErrLogoTooLarge          = "logo file is too large. Max size is 2MB"
 	ErrMatchNotFound         = "match not found"
+	ErrInvalidMatchID        = "invalid match ID"
 )
 
 // Common success messages
@@ -67,4 +68,5 @@ const (
 	MsgMatchUpdated       = "match updated successfully"
 	MsgMatchDeleted       = "match deleted successfully"
 	MsgMatchFetched       = "match fetched successfully"
+	MsgVideoUploaded      = "video uploaded successfully"
 )
