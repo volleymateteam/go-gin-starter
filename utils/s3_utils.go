@@ -30,7 +30,7 @@ func UploadMatchVideoToS3(uploader *s3manager.Uploader, file multipart.File, fil
 		Bucket: aws.String(config.AWSBucketName),
 		Key:    aws.String(key),
 		Body:   file,
-		ACL:    aws.String("public-read"),
+		// ACL:    aws.String("public-read"),
 	})
 	if err != nil {
 		return "", err

@@ -44,7 +44,7 @@ func UploadFileToS3(file multipart.File, objectKey string, contentType string) (
 		Key:         aws.String(objectKey),
 		Body:        bytes.NewReader(buf.Bytes()),
 		ContentType: aws.String(contentType),
-		ACL:         aws.String("public-read"), // optional, makes it publicly accessible
+		// ACL:         aws.String("public-read"), // optional, makes it publicly accessible
 	})
 	if err != nil {
 		return "", err
