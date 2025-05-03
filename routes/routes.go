@@ -60,6 +60,13 @@ func SetupRoutes(router *gin.Engine) {
 			admin.PUT("/seasons/:id", controllers.UpdateSeason)
 			admin.DELETE("/seasons/:id", controllers.DeleteSeason)
 			admin.PATCH("/seasons/:id/upload-logo", controllers.UploadSeasonLogo)
+
+			// Admin Match Management
+			admin.POST("/matches", controllers.CreateMatch)
+			admin.GET("/matches", controllers.GetAllMatches)
+			admin.GET("/matches/:id", controllers.GetMatchByID)
+			admin.PUT("/matches/:id", controllers.UpdateMatch)
+			admin.DELETE("/matches/:id", controllers.DeleteMatch)
 		}
 
 		// AdminOrSelf routes
