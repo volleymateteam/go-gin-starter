@@ -25,14 +25,17 @@ type UpdateMatchInput struct {
 }
 
 type MatchResponse struct {
-	ID         uuid.UUID        `json:"id"`
-	SeasonID   uuid.UUID        `json:"season_id"`
-	HomeTeamID uuid.UUID        `json:"home_team_id"`
-	AwayTeamID uuid.UUID        `json:"away_team_id"`
-	Round      models.RoundEnum `json:"round"`
-	Location   string           `json:"location"`
-	VideoURL   string           `json:"video_url"`
-	ScoutJSON  string           `json:"scout_json"`
-	CreatedAt  time.Time        `json:"created_at"`
-	UpdatedAt  time.Time        `json:"updated_at"`
+	ID           uuid.UUID        `json:"id"`
+	SeasonID     uuid.UUID        `json:"season_id"`
+	SeasonName   string           `json:"season_name"`
+	HomeTeamID   uuid.UUID        `json:"home_team_id"`
+	HomeTeamName string           `json:"home_team_name"`
+	AwayTeamID   uuid.UUID        `json:"away_team_id"`
+	AwayTeamName string           `json:"away_team_name"`
+	Round        models.RoundEnum `json:"round"`
+	Location     string           `json:"location"`
+	VideoURL     string           `json:"video_url"`
+	ScoutJSON    string           `json:"scout_json"`
+	CreatedAt    time.Time        `json:"created_at"`
+	UpdatedAt    time.Time        `json:"updated_at"`
 }

@@ -24,17 +24,25 @@ func CreateMatchService(input *dto.CreateMatchInput) (*dto.MatchResponse, error)
 		return nil, err
 	}
 
+	// Fetch related names
+	season, _ := repositories.GetSeasonByID(match.SeasonID)
+	homeTeam, _ := repositories.GetTeamByID(match.HomeTeamID)
+	awayTeam, _ := repositories.GetTeamByID(match.AwayTeamID)
+
 	response := dto.MatchResponse{
-		ID:         match.ID,
-		SeasonID:   match.SeasonID,
-		HomeTeamID: match.HomeTeamID,
-		AwayTeamID: match.AwayTeamID,
-		Round:      match.Round,
-		Location:   match.Location,
-		VideoURL:   match.VideoURL,
-		ScoutJSON:  match.ScoutJSON,
-		CreatedAt:  match.CreatedAt,
-		UpdatedAt:  match.UpdatedAt,
+		ID:           match.ID,
+		SeasonID:     match.SeasonID,
+		SeasonName:   getSeasonName(season),
+		HomeTeamID:   match.HomeTeamID,
+		HomeTeamName: getTeamName(homeTeam),
+		AwayTeamID:   match.AwayTeamID,
+		AwayTeamName: getTeamName(awayTeam),
+		Round:        match.Round,
+		Location:     match.Location,
+		VideoURL:     match.VideoURL,
+		ScoutJSON:    match.ScoutJSON,
+		CreatedAt:    match.CreatedAt,
+		UpdatedAt:    match.UpdatedAt,
 	}
 
 	return &response, nil
@@ -49,17 +57,24 @@ func GetAllMatchesService() ([]dto.MatchResponse, error) {
 
 	var responses []dto.MatchResponse
 	for _, m := range matches {
+		season, _ := repositories.GetSeasonByID(m.SeasonID)
+		homeTeam, _ := repositories.GetTeamByID(m.HomeTeamID)
+		awayTeam, _ := repositories.GetTeamByID(m.AwayTeamID)
+
 		responses = append(responses, dto.MatchResponse{
-			ID:         m.ID,
-			SeasonID:   m.SeasonID,
-			HomeTeamID: m.HomeTeamID,
-			AwayTeamID: m.AwayTeamID,
-			Round:      m.Round,
-			Location:   m.Location,
-			VideoURL:   m.VideoURL,
-			ScoutJSON:  m.ScoutJSON,
-			CreatedAt:  m.CreatedAt,
-			UpdatedAt:  m.UpdatedAt,
+			ID:           m.ID,
+			SeasonID:     m.SeasonID,
+			SeasonName:   getSeasonName(season),
+			HomeTeamID:   m.HomeTeamID,
+			HomeTeamName: getTeamName(homeTeam),
+			AwayTeamID:   m.AwayTeamID,
+			AwayTeamName: getTeamName(awayTeam),
+			Round:        m.Round,
+			Location:     m.Location,
+			VideoURL:     m.VideoURL,
+			ScoutJSON:    m.ScoutJSON,
+			CreatedAt:    m.CreatedAt,
+			UpdatedAt:    m.UpdatedAt,
 		})
 	}
 
@@ -73,17 +88,24 @@ func GetMatchByIDService(id uuid.UUID) (*dto.MatchResponse, error) {
 		return nil, errors.New(utils.ErrMatchNotFound)
 	}
 
+	season, _ := repositories.GetSeasonByID(match.SeasonID)
+	homeTeam, _ := repositories.GetTeamByID(match.HomeTeamID)
+	awayTeam, _ := repositories.GetTeamByID(match.AwayTeamID)
+
 	return &dto.MatchResponse{
-		ID:         match.ID,
-		SeasonID:   match.SeasonID,
-		HomeTeamID: match.HomeTeamID,
-		AwayTeamID: match.AwayTeamID,
-		Round:      match.Round,
-		Location:   match.Location,
-		VideoURL:   match.VideoURL,
-		ScoutJSON:  match.ScoutJSON,
-		CreatedAt:  match.CreatedAt,
-		UpdatedAt:  match.UpdatedAt,
+		ID:           match.ID,
+		SeasonID:     match.SeasonID,
+		SeasonName:   getSeasonName(season),
+		HomeTeamID:   match.HomeTeamID,
+		HomeTeamName: getTeamName(homeTeam),
+		AwayTeamID:   match.AwayTeamID,
+		AwayTeamName: getTeamName(awayTeam),
+		Round:        match.Round,
+		Location:     match.Location,
+		VideoURL:     match.VideoURL,
+		ScoutJSON:    match.ScoutJSON,
+		CreatedAt:    match.CreatedAt,
+		UpdatedAt:    match.UpdatedAt,
 	}, nil
 }
 
@@ -117,21 +139,44 @@ func UpdateMatchService(id uuid.UUID, input *dto.UpdateMatchInput) (*dto.MatchRe
 		return nil, err
 	}
 
+	season, _ := repositories.GetSeasonByID(match.SeasonID)
+	homeTeam, _ := repositories.GetTeamByID(match.HomeTeamID)
+	awayTeam, _ := repositories.GetTeamByID(match.AwayTeamID)
+
 	return &dto.MatchResponse{
-		ID:         match.ID,
-		SeasonID:   match.SeasonID,
-		HomeTeamID: match.HomeTeamID,
-		AwayTeamID: match.AwayTeamID,
-		Round:      match.Round,
-		Location:   match.Location,
-		VideoURL:   match.VideoURL,
-		ScoutJSON:  match.ScoutJSON,
-		CreatedAt:  match.CreatedAt,
-		UpdatedAt:  match.UpdatedAt,
+		ID:           match.ID,
+		SeasonID:     match.SeasonID,
+		SeasonName:   getSeasonName(season),
+		HomeTeamID:   match.HomeTeamID,
+		HomeTeamName: getTeamName(homeTeam),
+		AwayTeamID:   match.AwayTeamID,
+		AwayTeamName: getTeamName(awayTeam),
+		Round:        match.Round,
+		Location:     match.Location,
+		VideoURL:     match.VideoURL,
+		ScoutJSON:    match.ScoutJSON,
+		CreatedAt:    match.CreatedAt,
+		UpdatedAt:    match.UpdatedAt,
 	}, nil
 }
 
 // DeleteMatchService deletes a match
 func DeleteMatchService(id uuid.UUID) error {
 	return repositories.DeleteMatch(id)
+}
+
+// helper to format season name
+func getSeasonName(season *models.Season) string {
+	if season == nil {
+		return ""
+	}
+	return string(season.Name) + " " + season.SeasonYear
+}
+
+// helper to get team name
+func getTeamName(team *models.Team) string {
+	if team == nil {
+		return ""
+	}
+	return team.Name
 }
