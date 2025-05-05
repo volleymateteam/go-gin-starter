@@ -122,3 +122,33 @@ func UploadMatchVideo(c *gin.Context) {
 
 	utils.RespondSuccess(c, http.StatusOK, gin.H{"video_url": videoURL}, utils.MsgVideoUploaded)
 }
+
+// UploadScoutFile handles PATCH /api/admin/matches/:id/upload-scout-file
+func UploadMatchScout(c *gin.Context) {
+	matchID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidMatchID)
+		return
+	}
+
+	file, err := c.FormFile("scout_file")
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrFileUploadRequired)
+		return
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrUploadFailed)
+		return
+	}
+	defer src.Close()
+
+	jsonURL, err := services.UploadMatchScoutService(matchID, src, file)
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, gin.H{"scout_url": jsonURL}, utils.MsgScoutUploaded)
+}

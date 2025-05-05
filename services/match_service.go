@@ -1,10 +1,12 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"mime/multipart"
 	"os"
+	"path/filepath"
 
 	"go-gin-starter/config"
 	"go-gin-starter/dto"
@@ -242,4 +244,52 @@ func UploadMatchVideoService(matchID uuid.UUID, file multipart.File, fileHeader 
 	}
 
 	return videoURL, nil
+}
+
+// UploadMatchScoutService handles uploading and parsing a scout (.dvw) file
+func UploadMatchScoutService(matchID uuid.UUID, file multipart.File, fileHeader *multipart.FileHeader) (string, error) {
+	match, err := repositories.GetMatchByID(matchID)
+	if err != nil {
+		return "", errors.New(utils.ErrMatchNotFound)
+	}
+
+	if filepath.Ext(fileHeader.Filename) != ".dvw" {
+		return "", errors.New("invalid file type: only .dvw supported")
+	}
+
+	// Upload original .dvw file to S3
+	s3InputKey := fmt.Sprintf("scouts/%s.dvw", matchID.String())
+	contentType := fileHeader.Header.Get("Content-Type")
+
+	_, err = utils.UploadFileToS3(file, s3InputKey, contentType)
+	if err != nil {
+		return "", fmt.Errorf("failed to upload .dvw file: %w", err)
+	}
+
+	// Call Python microservice to parse the uploaded file
+	parsedResult, err := utils.CallPythonParser(s3InputKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse scout file: %w", err)
+	}
+
+	// Convert parsed JSON to []byte
+	jsonBytes, err := json.Marshal(parsedResult.JsonData)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal parsed data: %w", err)
+	}
+
+	// Upload parsed JSON to S3
+	s3OutputKey := fmt.Sprintf("scout-files/%s.json", matchID.String())
+	jsonURL, err := utils.UploadBytesToS3(jsonBytes, s3OutputKey, "application/json")
+	if err != nil {
+		return "", fmt.Errorf("failed to upload scout json: %w", err)
+	}
+
+	// Save JSON URL to DB
+	match.ScoutJSON = jsonURL
+	if err := repositories.UpdateMatch(match); err != nil {
+		return "", err
+	}
+
+	return jsonURL, nil
 }

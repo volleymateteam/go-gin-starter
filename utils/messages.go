@@ -9,7 +9,7 @@ const (
 	ErrInvalidUserID         = "invalid user ID"
 	ErrInvalidGender         = "invalid gender value"
 	ErrInvalidRole           = "invalid role value"
-	ErrInternalServer        = "internal Server Error"
+	ErrInternalServer        = "internal server error"
 	ErrInvalidToken          = "invalid or expired token"
 	ErrTokenExpired          = "reset token has expired"
 	ErrTokenGenerationFailed = "token generation failed"
@@ -69,4 +69,5 @@ const (
 	MsgMatchDeleted       = "match deleted successfully"
 	MsgMatchFetched       = "match fetched successfully"
 	MsgVideoUploaded      = "video uploaded successfully"
+	MsgScoutUploaded      = "scout file uploaded and parsed successfully"
 )
