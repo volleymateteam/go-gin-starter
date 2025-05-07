@@ -60,19 +60,24 @@ func CreateMatchService(input *dto.CreateMatchInput) (*dto.MatchResponse, error)
 }
 
 // GetAllMatchesService returns all matches
-func GetAllMatchesService() ([]dto.MatchResponse, error) {
+func GetAllMatchesService() ([]dto.MatchListResponse, error) {
 	matches, err := repositories.GetAllMatches()
 	if err != nil {
 		return nil, err
 	}
 
-	var responses []dto.MatchResponse
+	var responses []dto.MatchListResponse
 	for _, m := range matches {
 		season, _ := repositories.GetSeasonByID(m.SeasonID)
 		homeTeam, _ := repositories.GetTeamByID(m.HomeTeamID)
 		awayTeam, _ := repositories.GetTeamByID(m.AwayTeamID)
 
-		responses = append(responses, dto.MatchResponse{
+		status := "missing"
+		if m.ScoutJSON != "" {
+			status = "available"
+		}
+
+		responses = append(responses, dto.MatchListResponse{
 			ID:           m.ID,
 			SeasonID:     m.SeasonID,
 			SeasonName:   getSeasonName(season),
@@ -83,7 +88,8 @@ func GetAllMatchesService() ([]dto.MatchResponse, error) {
 			Round:        m.Round,
 			Location:     m.Location,
 			VideoURL:     m.VideoURL,
-			ScoutJSON:    m.ScoutJSON,
+			ScoutJSONURL: m.ScoutJSON,
+			JsonStatus:   status,
 			CreatedAt:    m.CreatedAt,
 			UpdatedAt:    m.UpdatedAt,
 		})
