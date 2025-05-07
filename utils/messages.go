@@ -31,6 +31,8 @@ const (
 	ErrMatchNotFound         = "match not found"
 	ErrInvalidMatchRound     = "Invalid round provided"
 	ErrInvalidMatchID        = "invalid match ID"
+	ErrInvalidCountry        = "invalid country value"
+	ErrInvalidSeasonName     = "invalid season name value"
 )
 
 // Common success messages

@@ -99,3 +99,23 @@ func IsValidRound(r RoundEnum) bool {
 		return false
 	}
 }
+
+func IsValidCountry(c CountryEnum) bool {
+	switch c {
+	case CountryGermany, CountryItaly, CountryFrance, CountryPoland:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsValidSeasonName(s SeasonNameEnum) bool {
+	switch s {
+	case SeasonBundesliga, SeasonPlusLiga, SeasonSerieA, SeasonSuperLega,
+		SeasonLigueA, SeasonChampionsLeague, SeasonVNL,
+		SeasonWorldChampionship, SeasonEuropeanChampionship:
+		return true
+	default:
+		return false
+	}
+}
