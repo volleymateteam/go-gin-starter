@@ -7,11 +7,92 @@ const (
 	RoleSuperAdmin     RoleEnum = "super_admin"
 	RoleAdmin          RoleEnum = "admin"
 	RolePresident      RoleEnum = "president"
+	RoleManager        RoleEnum = "manager"
 	RoleHeadCoach      RoleEnum = "head_coach"
 	RoleAssistantCoach RoleEnum = "assistant_coach"
 	RoleScoutman       RoleEnum = "scoutman"
 	RolePlayer         RoleEnum = "player"
+	RoleAgent          RoleEnum = "agent"
+	RoleGuest          RoleEnum = "guest"
 )
+
+// --- Role Pemissions ---
+var RolePermissions = map[RoleEnum][]string{
+	RoleSuperAdmin: {"all"},
+	RoleAdmin: {
+		"manage_users",
+		"manage_teams",
+		"manage_matches",
+		"upload_video",
+		"upload_scout",
+		"manage_season",
+		"manage_waitlist",
+		"manage_roles",
+		"manage_permissions",
+		"manage_notifications",
+		"manage_settings",
+		"manage_reports",
+		"manage_logs",
+		"manage_feedback",
+		"manage_subscriptions",
+		"manage_payments",
+		"manage_tickets",
+		"manage_events",
+		"manage_promotions",
+		"manage_partners",
+		"manage_sponsors",
+		"manage_merchandise",
+		"manage_analytics",
+		"manage_marketing",
+		"manage_content",
+		"manage_social_media",
+		"manage_website",
+		"manage_app",
+		"manage_integration"},
+	RolePresident: {
+		"view_team",
+		"approve_join_request",
+		"view_match",
+		"manage_team_roster",
+		"schedule_practices",
+		"assign_roles",
+	},
+	RoleManager: {
+		"view_team",
+		"approve_join_request",
+		"view_match",
+		"manage_team_roster",
+		"schedule_practices",
+		"assign_roles",
+	},
+	RoleHeadCoach: {
+		"view_team",
+		"upload_video",
+		"upload_scout",
+		"view_match",
+		"view_scout_data",
+	},
+	RoleAssistantCoach: {
+		"view_team",
+		"view_match",
+		"view_scout_data",
+	},
+	RoleScoutman: {
+		"upload_video",
+		"upload_scout",
+		"view_match",
+	},
+	RolePlayer: {
+		"view_own_stats",
+		"view_match",
+	},
+	RoleAgent: {
+		"view_player_profiles",
+	},
+	RoleGuest: {
+		"view_public_stats",
+	},
+}
 
 // --- Gender ---
 type GenderEnum string
@@ -74,7 +155,7 @@ const (
 // --- Validations ---
 func IsValidRole(r RoleEnum) bool {
 	switch r {
-	case RoleSuperAdmin, RoleAdmin, RolePresident, RoleHeadCoach, RoleAssistantCoach, RoleScoutman, RolePlayer:
+	case RoleSuperAdmin, RoleAdmin, RolePresident, RoleHeadCoach, RoleAssistantCoach, RoleScoutman, RolePlayer, RoleAgent, RoleGuest:
 		return true
 	default:
 		return false
