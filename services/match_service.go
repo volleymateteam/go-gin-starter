@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"go-gin-starter/config"
 	"go-gin-starter/dto"
@@ -114,7 +116,7 @@ func GetMatchByIDService(id uuid.UUID) (*dto.MatchResponse, error) {
 	if match.ScoutJSON != "" {
 		jsonData, err = utils.FetchJSONFromS3(match.ScoutJSON)
 		if err != nil {
-			fmt.Println("Failed to fetch JSON from S3:", err)
+			log.Printf("Failed to fetch JSON from S3: %v", err)
 		}
 	}
 
@@ -269,7 +271,7 @@ func UploadMatchScoutService(matchID uuid.UUID, file multipart.File, fileHeader 
 		return "", errors.New(utils.ErrMatchNotFound)
 	}
 
-	if filepath.Ext(fileHeader.Filename) != ".dvw" {
+	if strings.ToLower(filepath.Ext(fileHeader.Filename)) != ".dvw" {
 		return "", errors.New("invalid file type: only .dvw supported")
 	}
 
