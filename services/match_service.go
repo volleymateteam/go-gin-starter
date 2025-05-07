@@ -103,6 +103,15 @@ func GetMatchByIDService(id uuid.UUID) (*dto.MatchResponse, error) {
 	homeTeam, _ := repositories.GetTeamByID(match.HomeTeamID)
 	awayTeam, _ := repositories.GetTeamByID(match.AwayTeamID)
 
+	// Fetch and parse JSON from S3
+	var jsonData map[string]interface{}
+	if match.ScoutJSON != "" {
+		jsonData, err = utils.FetchJSONFromS3(match.ScoutJSON)
+		if err != nil {
+			fmt.Println("Failed to fetch JSON from S3:", err)
+		}
+	}
+
 	return &dto.MatchResponse{
 		ID:           match.ID,
 		SeasonID:     match.SeasonID,
@@ -115,6 +124,7 @@ func GetMatchByIDService(id uuid.UUID) (*dto.MatchResponse, error) {
 		Location:     match.Location,
 		VideoURL:     match.VideoURL,
 		ScoutJSON:    match.ScoutJSON,
+		JsonData:     jsonData,
 		CreatedAt:    match.CreatedAt,
 		UpdatedAt:    match.UpdatedAt,
 	}, nil

@@ -50,7 +50,9 @@ func UploadFileToS3(file multipart.File, objectKey string, contentType string) (
 		return "", err
 	}
 
-	publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", awsBucket, awsRegion, objectKey)
+	// publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", awsBucket, awsRegion, objectKey)
+	publicURL := fmt.Sprintf("https://%s/%s", os.Getenv("CLOUDFRONT_DOMAIN"), objectKey)
+
 	return publicURL, nil
 }
 
@@ -76,11 +78,13 @@ func UploadBytesToS3(data []byte, objectKey, contentType string) (string, error)
 		Key:         aws.String(objectKey),
 		Body:        bytes.NewReader(data),
 		ContentType: aws.String(contentType),
+		// ACL:         aws.String("public-read"),
 	})
 	if err != nil {
 		return "", err
 	}
 
-	publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", awsBucket, awsRegion, objectKey)
+	// publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", awsBucket, awsRegion, objectKey)
+	publicURL := fmt.Sprintf("https://%s/%s", os.Getenv("CLOUDFRONT_DOMAIN"), objectKey)
 	return publicURL, nil
 }
