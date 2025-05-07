@@ -50,6 +50,41 @@ func UploadFileToS3(file multipart.File, objectKey string, contentType string) (
 		return "", err
 	}
 
-	publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", awsBucket, awsRegion, objectKey)
+	// publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", awsBucket, awsRegion, objectKey)
+	publicURL := fmt.Sprintf("https://%s/%s", os.Getenv("CLOUDFRONT_DOMAIN"), objectKey)
+
+	return publicURL, nil
+}
+
+func UploadBytesToS3(data []byte, objectKey, contentType string) (string, error) {
+	awsRegion := os.Getenv("AWS_REGION")
+	awsBucket := os.Getenv("AWS_BUCKET_NAME")
+
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(awsRegion),
+		Credentials: credentials.NewStaticCredentials(
+			os.Getenv("AWS_ACCESS_KEY_ID"),
+			os.Getenv("AWS_SECRET_ACCESS_KEY"),
+			"",
+		),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	s3Client := s3.New(sess)
+	_, err = s3Client.PutObject(&s3.PutObjectInput{
+		Bucket:      aws.String(awsBucket),
+		Key:         aws.String(objectKey),
+		Body:        bytes.NewReader(data),
+		ContentType: aws.String(contentType),
+		// ACL:         aws.String("public-read"),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", awsBucket, awsRegion, objectKey)
+	publicURL := fmt.Sprintf("https://%s/%s", os.Getenv("CLOUDFRONT_DOMAIN"), objectKey)
 	return publicURL, nil
 }

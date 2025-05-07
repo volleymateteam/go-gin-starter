@@ -1,10 +1,12 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"mime/multipart"
 	"os"
+	"path/filepath"
 
 	"go-gin-starter/config"
 	"go-gin-starter/dto"
@@ -58,19 +60,24 @@ func CreateMatchService(input *dto.CreateMatchInput) (*dto.MatchResponse, error)
 }
 
 // GetAllMatchesService returns all matches
-func GetAllMatchesService() ([]dto.MatchResponse, error) {
+func GetAllMatchesService() ([]dto.MatchListResponse, error) {
 	matches, err := repositories.GetAllMatches()
 	if err != nil {
 		return nil, err
 	}
 
-	var responses []dto.MatchResponse
+	var responses []dto.MatchListResponse
 	for _, m := range matches {
 		season, _ := repositories.GetSeasonByID(m.SeasonID)
 		homeTeam, _ := repositories.GetTeamByID(m.HomeTeamID)
 		awayTeam, _ := repositories.GetTeamByID(m.AwayTeamID)
 
-		responses = append(responses, dto.MatchResponse{
+		status := "missing"
+		if m.ScoutJSON != "" {
+			status = "available"
+		}
+
+		responses = append(responses, dto.MatchListResponse{
 			ID:           m.ID,
 			SeasonID:     m.SeasonID,
 			SeasonName:   getSeasonName(season),
@@ -81,7 +88,8 @@ func GetAllMatchesService() ([]dto.MatchResponse, error) {
 			Round:        m.Round,
 			Location:     m.Location,
 			VideoURL:     m.VideoURL,
-			ScoutJSON:    m.ScoutJSON,
+			ScoutJSONURL: m.ScoutJSON,
+			JsonStatus:   status,
 			CreatedAt:    m.CreatedAt,
 			UpdatedAt:    m.UpdatedAt,
 		})
@@ -101,6 +109,15 @@ func GetMatchByIDService(id uuid.UUID) (*dto.MatchResponse, error) {
 	homeTeam, _ := repositories.GetTeamByID(match.HomeTeamID)
 	awayTeam, _ := repositories.GetTeamByID(match.AwayTeamID)
 
+	// Fetch and parse JSON from S3
+	var jsonData map[string]interface{}
+	if match.ScoutJSON != "" {
+		jsonData, err = utils.FetchJSONFromS3(match.ScoutJSON)
+		if err != nil {
+			fmt.Println("Failed to fetch JSON from S3:", err)
+		}
+	}
+
 	return &dto.MatchResponse{
 		ID:           match.ID,
 		SeasonID:     match.SeasonID,
@@ -113,6 +130,7 @@ func GetMatchByIDService(id uuid.UUID) (*dto.MatchResponse, error) {
 		Location:     match.Location,
 		VideoURL:     match.VideoURL,
 		ScoutJSON:    match.ScoutJSON,
+		JsonData:     jsonData,
 		CreatedAt:    match.CreatedAt,
 		UpdatedAt:    match.UpdatedAt,
 	}, nil
@@ -242,4 +260,52 @@ func UploadMatchVideoService(matchID uuid.UUID, file multipart.File, fileHeader 
 	}
 
 	return videoURL, nil
+}
+
+// UploadMatchScoutService handles uploading and parsing a scout (.dvw) file
+func UploadMatchScoutService(matchID uuid.UUID, file multipart.File, fileHeader *multipart.FileHeader) (string, error) {
+	match, err := repositories.GetMatchByID(matchID)
+	if err != nil {
+		return "", errors.New(utils.ErrMatchNotFound)
+	}
+
+	if filepath.Ext(fileHeader.Filename) != ".dvw" {
+		return "", errors.New("invalid file type: only .dvw supported")
+	}
+
+	// Upload original .dvw file to S3
+	s3InputKey := fmt.Sprintf("scouts/%s.dvw", matchID.String())
+	contentType := fileHeader.Header.Get("Content-Type")
+
+	_, err = utils.UploadFileToS3(file, s3InputKey, contentType)
+	if err != nil {
+		return "", fmt.Errorf("failed to upload .dvw file: %w", err)
+	}
+
+	// Call Python microservice to parse the uploaded file
+	parsedResult, err := utils.CallPythonParser(s3InputKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse scout file: %w", err)
+	}
+
+	// Convert parsed JSON to []byte
+	jsonBytes, err := json.Marshal(parsedResult.JsonData)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal parsed data: %w", err)
+	}
+
+	// Upload parsed JSON to S3
+	s3OutputKey := fmt.Sprintf("scout-files/%s.json", matchID.String())
+	jsonURL, err := utils.UploadBytesToS3(jsonBytes, s3OutputKey, "application/json")
+	if err != nil {
+		return "", fmt.Errorf("failed to upload scout json: %w", err)
+	}
+
+	// Save JSON URL to DB
+	match.ScoutJSON = jsonURL
+	if err := repositories.UpdateMatch(match); err != nil {
+		return "", err
+	}
+
+	return jsonURL, nil
 }

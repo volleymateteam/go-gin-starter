@@ -89,3 +89,33 @@ func IsValidGender(g GenderEnum) bool {
 		return false
 	}
 }
+
+func IsValidRound(r RoundEnum) bool {
+	switch r {
+	case RoundFirstRound, RoundSecondRound, RoundGroupStage, RoundPlayouts, RoundPlayoffs,
+		RoundQuarterfinals, RoundSemifinals, RoundFinals, RoundThirdPlacePlayoff, RoundSuperFinal:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsValidCountry(c CountryEnum) bool {
+	switch c {
+	case CountryGermany, CountryItaly, CountryFrance, CountryPoland:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsValidSeasonName(s SeasonNameEnum) bool {
+	switch s {
+	case SeasonBundesliga, SeasonPlusLiga, SeasonSerieA, SeasonSuperLega,
+		SeasonLigueA, SeasonChampionsLeague, SeasonVNL,
+		SeasonWorldChampionship, SeasonEuropeanChampionship:
+		return true
+	default:
+		return false
+	}
+}

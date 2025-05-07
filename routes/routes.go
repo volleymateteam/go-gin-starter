@@ -68,6 +68,7 @@ func SetupRoutes(router *gin.Engine) {
 			admin.PUT("/matches/:id", controllers.UpdateMatch)
 			admin.DELETE("/matches/:id", controllers.DeleteMatch)
 			admin.PATCH("/matches/:id/upload-video", controllers.UploadMatchVideo)
+			admin.PATCH("/matches/:id/upload-scout", controllers.UploadMatchScout)
 		}
 
 		// AdminOrSelf routes

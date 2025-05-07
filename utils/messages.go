@@ -9,7 +9,7 @@ const (
 	ErrInvalidUserID         = "invalid user ID"
 	ErrInvalidGender         = "invalid gender value"
 	ErrInvalidRole           = "invalid role value"
-	ErrInternalServer        = "internal Server Error"
+	ErrInternalServer        = "internal server error"
 	ErrInvalidToken          = "invalid or expired token"
 	ErrTokenExpired          = "reset token has expired"
 	ErrTokenGenerationFailed = "token generation failed"
@@ -29,7 +29,10 @@ const (
 	ErrFileUploadRequired    = "file upload is required"
 	ErrLogoTooLarge          = "logo file is too large. Max size is 2MB"
 	ErrMatchNotFound         = "match not found"
+	ErrInvalidMatchRound     = "Invalid round provided"
 	ErrInvalidMatchID        = "invalid match ID"
+	ErrInvalidCountry        = "invalid country value"
+	ErrInvalidSeasonName     = "invalid season name value"
 )
 
 // Common success messages
@@ -69,4 +72,5 @@ const (
 	MsgMatchDeleted       = "match deleted successfully"
 	MsgMatchFetched       = "match fetched successfully"
 	MsgVideoUploaded      = "video uploaded successfully"
+	MsgScoutUploaded      = "scout file uploaded and parsed successfully"
 )

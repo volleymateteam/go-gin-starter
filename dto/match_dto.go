@@ -21,7 +21,7 @@ type UpdateMatchInput struct {
 	Round      models.RoundEnum `json:"round" binding:"omitempty"`
 	Location   string           `json:"location" binding:"omitempty"`
 	VideoURL   string           `json:"video_url" binding:"omitempty"`
-	ScoutJSON  string           `json:"scout_json" binding:"omitempty"`
+	ScoutJSON  string           `json:"scout_json_url" binding:"omitempty"`
 }
 
 type MatchResponse struct {
@@ -35,7 +35,26 @@ type MatchResponse struct {
 	Round        models.RoundEnum `json:"round"`
 	Location     string           `json:"location"`
 	VideoURL     string           `json:"video_url"`
-	ScoutJSON    string           `json:"scout_json"`
+	ScoutJSON    string           `json:"scout_json_url"`
+	JsonData     interface{}      `json:"json_data"`
+	// JsonData     map[string]interface{} `json:"json_data"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type MatchListResponse struct {
+	ID           uuid.UUID        `json:"id"`
+	SeasonID     uuid.UUID        `json:"season_id"`
+	SeasonName   string           `json:"season_name"`
+	HomeTeamID   uuid.UUID        `json:"home_team_id"`
+	HomeTeamName string           `json:"home_team_name"`
+	AwayTeamID   uuid.UUID        `json:"away_team_id"`
+	AwayTeamName string           `json:"away_team_name"`
+	Round        models.RoundEnum `json:"round"`
+	Location     string           `json:"location"`
+	VideoURL     string           `json:"video_url"`
+	ScoutJSONURL string           `json:"scout_json_url"`
+	JsonStatus   string           `json:"json_status"`
 	CreatedAt    time.Time        `json:"created_at"`
 	UpdatedAt    time.Time        `json:"updated_at"`
 }

@@ -44,5 +44,5 @@ func main() {
 	routes.SetupRoutes(r)
 
 	// Start the server
-	r.Run(":8000")
+	r.Run(":8080")
 }
