@@ -29,6 +29,7 @@ const (
 	ErrFileUploadRequired    = "file upload is required"
 	ErrLogoTooLarge          = "logo file is too large. Max size is 2MB"
 	ErrMatchNotFound         = "match not found"
+	ErrInvalidMatchRound     = "Invalid round provided"
 	ErrInvalidMatchID        = "invalid match ID"
 )
 

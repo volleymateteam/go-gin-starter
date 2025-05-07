@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"go-gin-starter/dto"
+	"go-gin-starter/models"
 	"go-gin-starter/services"
 	"go-gin-starter/utils"
 	"net/http"
@@ -15,6 +16,12 @@ func CreateMatch(c *gin.Context) {
 	var input dto.CreateMatchInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidInput)
+		return
+	}
+
+	// Validate round
+	if !models.IsValidRound(input.Round) {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidMatchRound)
 		return
 	}
 

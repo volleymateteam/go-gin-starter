@@ -89,3 +89,13 @@ func IsValidGender(g GenderEnum) bool {
 		return false
 	}
 }
+
+func IsValidRound(r RoundEnum) bool {
+	switch r {
+	case RoundFirstRound, RoundSecondRound, RoundGroupStage, RoundPlayouts, RoundPlayoffs,
+		RoundQuarterfinals, RoundSemifinals, RoundFinals, RoundThirdPlacePlayoff, RoundSuperFinal:
+		return true
+	default:
+		return false
+	}
+}
