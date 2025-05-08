@@ -127,3 +127,18 @@ func AdminUpdateUser(id uuid.UUID, input *dto.AdminUpdateUserInput) (*models.Use
 
 	return user, nil
 }
+
+func UpdateUserPermissions(userID uuid.UUID, permissions []string) error {
+	user, err := repositories.FindUserByID(userID)
+	if err != nil {
+		return err
+	}
+
+	user.ExtraPermissions = permissions // GORM automaps []string to postgres array or jsonb
+
+	if err := repositories.UpdateUser(user); err != nil {
+		return err
+	}
+
+	return nil
+}

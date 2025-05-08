@@ -81,3 +81,27 @@ func DeleteUserByAdmin(c *gin.Context) {
 
 	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgUserDeleted)
 }
+
+// UpdateUserPermissions updates user permissions by Admin
+func UpdateUserPermissions(c *gin.Context) {
+	idParam := c.Param("id")
+	userID, err := uuid.Parse(idParam)
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		return
+	}
+
+	var input dto.UpdatePermissionsInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidInput)
+		return
+	}
+
+	err = services.UpdateUserPermissions(userID, input.Permissions)
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgUserPermissionsUpdated)
+}
