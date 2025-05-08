@@ -32,7 +32,7 @@ func RequirePermission(permission string) gin.HandlerFunc {
 			return
 		}
 
-		if !utils.HasPermission(user.Role, permission) {
+		if !utils.HasPermission(user, permission) {
 			utils.RespondError(c, http.StatusForbidden, utils.ErrForbidden)
 			c.Abort()
 			return

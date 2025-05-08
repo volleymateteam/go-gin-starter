@@ -4,18 +4,22 @@ import (
 	"go-gin-starter/models"
 )
 
-func HasPermission(role models.RoleEnum, permission string) bool {
-	perms, exists := models.RolePermissions[role]
-	if !exists {
-		return false
+func HasPermission(user *models.User, permission string) bool {
+	// 1. Check role-based permissions
+	rolePerms, exists := models.RolePermissions[user.Role]
+	if exists {
+		if contains(rolePerms, "all") || contains(rolePerms, permission) {
+			return true
+		}
 	}
 
-	// super admin shortcuts
-	if contains(perms, "all") {
+	// 2. Check extra per-user permissions
+	if contains(user.ExtraPermissions, permission) {
 		return true
 	}
 
-	return contains(perms, permission)
+	// 3. Deny by default
+	return false
 }
 
 func contains(slice []string, item string) bool {
