@@ -134,7 +134,7 @@ func UpdateUserPermissions(userID uuid.UUID, permissions []string) error {
 		return err
 	}
 
-	user.ExtraPermissions = permissions // GORM automaps []string to postgres array or jsonb
+	user.ExtraPermissions = models.StringArray(permissions) // Convert []string to StringArray
 
 	if err := repositories.UpdateUser(user); err != nil {
 		return err
