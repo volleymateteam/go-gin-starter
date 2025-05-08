@@ -28,47 +28,43 @@ func SetupRoutes(router *gin.Engine) {
 		auth.DELETE("/profile", controllers.DeleteProfile)
 		auth.PUT("/profile/change-password", controllers.ChangePassword)
 
-		// Admin-only routes
+		// Admin permission-based routes
 		admin := auth.Group("/admin")
-		admin.Use(middleware.AdminOnly())
 		{
 			// Admin User Management
-			admin.GET("/users", controllers.GetAllUsers)
-			admin.PUT("/users/:id", controllers.UpdateUserByAdmin)
-			admin.DELETE("/users/:id", controllers.DeleteUserByAdmin)
+			admin.GET("/users", middleware.RequirePermission("manage_users"), controllers.GetAllUsers)
+			admin.PUT("/users/:id", middleware.RequirePermission("manage_users"), controllers.UpdateUserByAdmin)
+			admin.DELETE("/users/:id", middleware.RequirePermission("manage_users"), controllers.DeleteUserByAdmin)
 
 			// Admin Waitlist Management
-			admin.GET("/waitlist", controllers.GetAllWaitlist)
-			admin.POST("/waitlist/:id/approve", controllers.ApproveWaitlistEntry)
-			admin.DELETE("/waitlist/:id/reject", controllers.RejectWaitlistEntry)
+			admin.GET("/waitlist", middleware.RequirePermission("manage_waitlist"), controllers.GetAllWaitlist)
+			admin.POST("/waitlist/:id/approve", middleware.RequirePermission("manage_waitlist"), controllers.ApproveWaitlistEntry)
+			admin.DELETE("/waitlist/:id/reject", middleware.RequirePermission("manage_waitlist"), controllers.RejectWaitlistEntry)
 
 			// Admin Team Management
-			admin.POST("/teams", controllers.CreateTeam)
-			admin.GET("/teams", controllers.GetAllTeams)
-			admin.GET("/teams/:id", controllers.GetTeamByID)
-			admin.PUT("/teams/:id", controllers.UpdateTeam)
-			admin.DELETE("/teams/:id", controllers.DeleteTeam)
-			admin.PATCH("/teams/:id/upload-logo", controllers.UploadTeamLogo)
-			// admin.POST("/teams/:id/assign", controllers.AssignTeamToUser)
-			// admin.POST("/teams/:id/remove", controllers.RemoveTeamFromUser)
-			// admin.GET("/teams/:id/members", controllers.GetTeamMembers)
+			admin.POST("/teams", middleware.RequirePermission("manage_teams"), controllers.CreateTeam)
+			admin.GET("/teams", middleware.RequirePermission("manage_teams"), controllers.GetAllTeams)
+			admin.GET("/teams/:id", middleware.RequirePermission("manage_teams"), controllers.GetTeamByID)
+			admin.PUT("/teams/:id", middleware.RequirePermission("manage_teams"), controllers.UpdateTeam)
+			admin.DELETE("/teams/:id", middleware.RequirePermission("manage_teams"), controllers.DeleteTeam)
+			admin.PATCH("/teams/:id/upload-logo", middleware.RequirePermission("manage_teams"), controllers.UploadTeamLogo)
 
 			// Admin Season Management
-			admin.POST("/seasons", controllers.CreateSeason)
-			admin.GET("/seasons", controllers.GetAllSeasons)
-			admin.GET("/seasons/:id", controllers.GetSeasonByID)
-			admin.PUT("/seasons/:id", controllers.UpdateSeason)
-			admin.DELETE("/seasons/:id", controllers.DeleteSeason)
-			admin.PATCH("/seasons/:id/upload-logo", controllers.UploadSeasonLogo)
+			admin.POST("/seasons", middleware.RequirePermission("manage_season"), controllers.CreateSeason)
+			admin.GET("/seasons", middleware.RequirePermission("manage_season"), controllers.GetAllSeasons)
+			admin.GET("/seasons/:id", middleware.RequirePermission("manage_season"), controllers.GetSeasonByID)
+			admin.PUT("/seasons/:id", middleware.RequirePermission("manage_season"), controllers.UpdateSeason)
+			admin.DELETE("/seasons/:id", middleware.RequirePermission("manage_season"), controllers.DeleteSeason)
+			admin.PATCH("/seasons/:id/upload-logo", middleware.RequirePermission("manage_season"), controllers.UploadSeasonLogo)
 
 			// Admin Match Management
-			admin.POST("/matches", controllers.CreateMatch)
-			admin.GET("/matches", controllers.GetAllMatches)
-			admin.GET("/matches/:id", controllers.GetMatchByID)
-			admin.PUT("/matches/:id", controllers.UpdateMatch)
-			admin.DELETE("/matches/:id", controllers.DeleteMatch)
-			admin.PATCH("/matches/:id/upload-video", controllers.UploadMatchVideo)
-			admin.PATCH("/matches/:id/upload-scout", controllers.UploadMatchScout)
+			admin.POST("/matches", middleware.RequirePermission("manage_matches"), controllers.CreateMatch)
+			admin.GET("/matches", middleware.RequirePermission("manage_matches"), controllers.GetAllMatches)
+			admin.GET("/matches/:id", middleware.RequirePermission("manage_matches"), controllers.GetMatchByID)
+			admin.PUT("/matches/:id", middleware.RequirePermission("manage_matches"), controllers.UpdateMatch)
+			admin.DELETE("/matches/:id", middleware.RequirePermission("manage_matches"), controllers.DeleteMatch)
+			admin.PATCH("/matches/:id/upload-video", middleware.RequirePermission("upload_video"), controllers.UploadMatchVideo)
+			admin.PATCH("/matches/:id/upload-scout", middleware.RequirePermission("upload_scout"), controllers.UploadMatchScout)
 		}
 
 		// AdminOrSelf routes
