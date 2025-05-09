@@ -22,7 +22,7 @@ func LogAdminAction(adminID uuid.UUID, actionType string, targetUserID, targetTe
 	return repositories.CreateAdminActionLog(log)
 }
 
-// GetAuditLogs returns audit logs from repository
-func GetAuditLogs() ([]models.AdminActionLog, error) {
-	return repositories.GetAuditLogs()
+// GetAuditLogs returns audit logs with optional filter and pagination
+func GetAuditLogs(actionType string, offset, limit int) ([]models.AdminActionLog, error) {
+	return repositories.GetAuditLogs(actionType, offset, limit)
 }

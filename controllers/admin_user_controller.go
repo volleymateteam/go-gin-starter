@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -70,7 +71,10 @@ func UpdateUserByAdmin(c *gin.Context) {
 		"updated_fields": updatedFields,
 	}
 
-	_ = services.LogAdminAction(adminID, "update_user", &userID, nil, nil, nil, metadata)
+	errLog := services.LogAdminAction(adminID, "update_user", &userID, nil, nil, nil, metadata)
+	if errLog != nil {
+		fmt.Printf("LogAdminAction failed: %v\n", errLog)
+	}
 
 	// Prepare response
 	response := dto.AdminUserResponse{
@@ -238,8 +242,27 @@ func ResetUserPermissions(c *gin.Context) {
 	}, utils.MsgUserPermissionsReset)
 }
 
+// GetAuditLogs handles GET /api/admin/audit-logs with optional filters and pagination
 func GetAuditLogs(c *gin.Context) {
-	logs, err := services.GetAuditLogs()
+	// Read query parameters
+	actionType := c.Query("action_type")
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "20")
+
+	// Parse page & limit to integers
+	page, _ := strconv.Atoi(pageStr)
+	limit, _ := strconv.Atoi(limitStr)
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 20
+	}
+
+	offset := (page - 1) * limit
+
+	// Call service
+	logs, err := services.GetAuditLogs(actionType, offset, limit)
 	if err != nil {
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrFetchAuditFaild)
 		return
