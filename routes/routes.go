@@ -35,7 +35,8 @@ func SetupRoutes(router *gin.Engine) {
 			admin.GET("/users", middleware.RequirePermission("manage_users"), controllers.GetAllUsers)
 			admin.PUT("/users/:id", middleware.RequirePermission("manage_users"), controllers.UpdateUserByAdmin)
 			admin.DELETE("/users/:id", middleware.RequirePermission("manage_users"), controllers.DeleteUserByAdmin)
-			admin.PUT("/users/:id/permissions", middleware.RequirePermission("manage_users"), controllers.UpdateUserPermissions)
+			admin.PATCH("/users/:id/permissions", middleware.RequirePermission("manage_users"), controllers.UpdateUserPermissions)
+			admin.GET("/users/:id/permissions", middleware.RequirePermission("manage_users"), controllers.GetUserPermissions)
 
 			// Admin Waitlist Management
 			admin.GET("/waitlist", middleware.RequirePermission("manage_waitlist"), controllers.GetAllWaitlist)

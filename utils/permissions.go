@@ -30,3 +30,33 @@ func contains(slice []string, item string) bool {
 	}
 	return false
 }
+
+// GetAllPermissions returns all effective permissions (role + extra)
+func GetAllPermissions(user *models.User) []string {
+	// Start with role permissions
+	rolePerms, exists := models.RolePermissions[user.Role]
+	if !exists {
+		rolePerms = []string{}
+	}
+
+	// Create a map for quick lookup and to avoid duplicates
+	permMap := make(map[string]bool)
+
+	// Add role permissions
+	for _, p := range rolePerms {
+		permMap[p] = true
+	}
+
+	// Add extra permissions
+	for _, p := range user.ExtraPermissions {
+		permMap[p] = true
+	}
+
+	// Convert back to slice
+	result := make([]string, 0, len(permMap))
+	for p := range permMap {
+		result = append(result, p)
+	}
+
+	return result
+}

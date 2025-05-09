@@ -16,9 +16,13 @@ type StringArray []string
 // Value implements the driver.Valuer interface
 func (s StringArray) Value() (driver.Value, error) {
 	if s == nil {
-		return nil, nil
+		return "[]", nil
 	}
-	return json.Marshal(s)
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		return nil, err
+	}
+	return string(bytes), nil
 }
 
 // Scan implements the sql.Scanner interface
@@ -42,7 +46,7 @@ type User struct {
 	Avatar               string      `gorm:"default:'default_avatar.png'"`
 	Gender               GenderEnum  `gorm:"type:varchar(10)"`
 	Role                 RoleEnum    `gorm:"type:varchar(20);default:'player'"`
-	ExtraPermissions     StringArray `gorm:"type:jsonb;default:'[]'" json:"extra_permissions"`
+	ExtraPermissions     StringArray `gorm:"type:jsonb;default:null" json:"extra_permissions"`
 	ResetPasswordToken   *string     `gorm:"type:text"`
 	ResetPasswordExpires *time.Time  `gorm:"type:timestamp"`
 	CreatedAt            time.Time

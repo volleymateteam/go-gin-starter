@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -93,15 +94,58 @@ func UpdateUserPermissions(c *gin.Context) {
 
 	var input dto.UpdatePermissionsInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidInput)
+		utils.RespondError(c, http.StatusBadRequest, fmt.Sprintf("%s: %v", utils.ErrInvalidInput, err))
 		return
 	}
 
 	err = services.UpdateUserPermissions(userID, input.Permissions)
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		utils.RespondError(c, http.StatusInternalServerError, fmt.Sprintf("Failed to update permissions: %v", err))
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgUserPermissionsUpdated)
+	// Get the updated user to return in the response
+	user, err := services.GetUserByID(userID)
+	if err != nil {
+		utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgUserPermissionsUpdated)
+		return
+	}
+
+	// Return the updated permissions in the response
+	utils.RespondSuccess(c, http.StatusOK, gin.H{
+		"user_id":     user.ID,
+		"permissions": user.ExtraPermissions,
+	}, utils.MsgUserPermissionsUpdated)
+}
+
+// GetUserPermissions retrieves a user's permissions
+func GetUserPermissions(c *gin.Context) {
+	idParam := c.Param("id")
+	userID, err := uuid.Parse(idParam)
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		return
+	}
+
+	user, err := services.GetUserByID(userID)
+	if err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrUserNotFound)
+		return
+	}
+
+	// Get role-based permissions
+	rolePerms, exists := models.RolePermissions[user.Role]
+	if !exists {
+		rolePerms = []string{}
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, gin.H{
+		"user_id":           user.ID,
+		"username":          user.Username,
+		"role":              user.Role,
+		"role_permissions":  rolePerms,
+		"extra_permissions": user.ExtraPermissions,
+		// Optionally include effective permissions (combined)
+		"all_permissions": utils.GetAllPermissions(user),
+	}, utils.MsgUserPermissionsFetched)
 }

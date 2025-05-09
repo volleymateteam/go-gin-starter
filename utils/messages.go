@@ -74,4 +74,5 @@ const (
 	MsgVideoUploaded          = "video uploaded successfully"
 	MsgScoutUploaded          = "scout file uploaded and parsed successfully"
 	MsgUserPermissionsUpdated = "user permissions updated successfully"
+	MsgUserPermissionsFetched = "user permissions fetched successfully"
 )
