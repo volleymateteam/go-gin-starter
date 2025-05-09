@@ -30,6 +30,13 @@ func UpdateUserByAdmin(c *gin.Context) {
 		return
 	}
 
+	// Fetch original user BEFORE updating
+	originalUser, err := services.GetUserByID(userID)
+	if err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrUserNotFound)
+		return
+	}
+
 	// Validate Gender if provided
 	if input.Gender != "" && !models.IsValidGender(input.Gender) {
 		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidGender)
@@ -42,14 +49,14 @@ func UpdateUserByAdmin(c *gin.Context) {
 		return
 	}
 
-	// Call service
+	// Call service to update user
 	updatedUser, err := services.AdminUpdateUser(userID, &input)
 	if err != nil {
 		utils.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	// Audit logging
+	// Prepare audit logging
 	adminID := c.MustGet("user_id").(uuid.UUID)
 
 	// Dynamically build list of updated fields
@@ -67,25 +74,24 @@ func UpdateUserByAdmin(c *gin.Context) {
 		updatedFields = append(updatedFields, "role")
 	}
 
+	// Build metadata including old/new role if role was updated
 	metadata := models.JSONBMap{
 		"updated_fields": updatedFields,
+		"username":       updatedUser.Username,
+		"email":          updatedUser.Email,
+	}
+	if input.Role != "" && input.Role != originalUser.Role {
+		metadata["old_role"] = originalUser.Role
+		metadata["new_role"] = input.Role
 	}
 
-	// Get original user data for role change audit
-	if input.Role != "" {
-		originalUser, err := services.GetUserByID(userID)
-		if err == nil && originalUser != nil {
-			metadata["old_role"] = originalUser.Role
-			metadata["new_role"] = input.Role
-		}
-	}
-
+	// Log admin action
 	errLog := services.LogAdminAction(adminID, "update_user", &userID, nil, nil, nil, metadata)
 	if errLog != nil {
 		fmt.Printf("LogAdminAction failed: %v\n", errLog)
 	}
 
-	// Prepare response
+	// Prepare API response
 	response := dto.AdminUserResponse{
 		ID:        updatedUser.ID,
 		Username:  updatedUser.Username,
@@ -145,21 +151,26 @@ func UpdateUserPermissions(c *gin.Context) {
 		return
 	}
 
-	// add logging
-	adminID := c.MustGet("user_id").(uuid.UUID)
-	metadata := models.JSONBMap{
-		"new_permissions": input.Permissions,
-	}
-	errLog := services.LogAdminAction(adminID, "update_permissions", &userID, nil, nil, nil, metadata)
-	if errLog != nil {
-		fmt.Printf("LogAdminAction failed: %v\n", errLog)
-	}
-
-	// Get the updated user to return in the response
+	// Get the updated user to include username/email in log
 	user, err := services.GetUserByID(userID)
 	if err != nil {
 		utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgUserPermissionsUpdated)
 		return
+	}
+
+	// Build metadata with username + email
+	metadata := models.JSONBMap{
+		"new_permissions": input.Permissions,
+		"username":        user.Username,
+		"email":           user.Email,
+	}
+
+	adminID := c.MustGet("user_id").(uuid.UUID)
+
+	// Log admin action
+	errLog := services.LogAdminAction(adminID, "update_permissions", &userID, nil, nil, nil, metadata)
+	if errLog != nil {
+		fmt.Printf("LogAdminAction failed: %v\n", errLog)
 	}
 
 	// Get role-based permissions
@@ -168,7 +179,6 @@ func UpdateUserPermissions(c *gin.Context) {
 		rolePerms = []string{}
 	}
 
-	// Return the updated permissions in the response
 	utils.RespondSuccess(c, http.StatusOK, gin.H{
 		"user_id":           user.ID,
 		"username":          user.Username,
