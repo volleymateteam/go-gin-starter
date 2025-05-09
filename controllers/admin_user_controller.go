@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 
 	"go-gin-starter/dto"
-	"go-gin-starter/models"
 	"go-gin-starter/services"
 	"go-gin-starter/utils"
 )
@@ -37,15 +36,9 @@ func UpdateUserByAdmin(c *gin.Context) {
 		return
 	}
 
-	// Validate Gender if provided
-	if input.Gender != "" && !models.IsValidGender(input.Gender) {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidGender)
-		return
-	}
-
-	// Validate Role if provided
-	if input.Role != "" && !models.IsValidRole(input.Role) {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidRole)
+	// Validate input using helper
+	if err := utils.ValidateAdminUpdateInput(&input); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -60,24 +53,12 @@ func UpdateUserByAdmin(c *gin.Context) {
 
 	// Prepare audit logging
 	adminID := c.MustGet("user_id").(uuid.UUID)
-
-	// Log admin action
 	errLog := services.LogAdminAction(adminID, "update_user", &userID, nil, nil, nil, metadata)
 	if errLog != nil {
 		fmt.Printf("LogAdminAction failed: %v\n", errLog)
 	}
 
-	// Prepare API response
-	response := dto.AdminUserResponse{
-		ID:        updatedUser.ID,
-		Username:  updatedUser.Username,
-		Email:     updatedUser.Email,
-		Gender:    updatedUser.Gender,
-		Role:      updatedUser.Role,
-		AvatarURL: "/uploads/avatars/" + updatedUser.Avatar,
-		CreatedAt: updatedUser.CreatedAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt: updatedUser.UpdatedAt.Format("2006-01-02 15:04:05"),
-	}
+	response := utils.BuildAdminUserResponse(updatedUser)
 
 	utils.RespondSuccess(c, http.StatusOK, response, utils.MsgUserUpdated)
 }
@@ -154,20 +135,8 @@ func UpdateUserPermissions(c *gin.Context) {
 		fmt.Printf("LogAdminAction failed: %v\n", errLog)
 	}
 
-	// Get role-based permissions
-	rolePerms, exists := models.RolePermissions[user.Role]
-	if !exists {
-		rolePerms = []string{}
-	}
-
-	utils.RespondSuccess(c, http.StatusOK, gin.H{
-		"user_id":           user.ID,
-		"username":          user.Username,
-		"role":              user.Role,
-		"role_permissions":  rolePerms,
-		"extra_permissions": user.ExtraPermissions,
-		"all_permissions":   utils.GetAllPermissions(user),
-	}, utils.MsgUserPermissionsUpdated)
+	response := utils.BuildUserPermissionsResponse(user)
+	utils.RespondSuccess(c, http.StatusOK, response, utils.MsgUserPermissionsUpdated)
 }
 
 // GetUserPermissions retrieves a user's permissions
@@ -185,21 +154,8 @@ func GetUserPermissions(c *gin.Context) {
 		return
 	}
 
-	// Get role-based permissions
-	rolePerms, exists := models.RolePermissions[user.Role]
-	if !exists {
-		rolePerms = []string{}
-	}
-
-	utils.RespondSuccess(c, http.StatusOK, gin.H{
-		"user_id":           user.ID,
-		"username":          user.Username,
-		"role":              user.Role,
-		"role_permissions":  rolePerms,
-		"extra_permissions": user.ExtraPermissions,
-		// Optionally include effective permissions (combined)
-		"all_permissions": utils.GetAllPermissions(user),
-	}, utils.MsgUserPermissionsFetched)
+	response := utils.BuildUserPermissionsResponse(user)
+	utils.RespondSuccess(c, http.StatusOK, response, utils.MsgUserPermissionsFetched)
 }
 
 // ResetUserPermissions resets a user's extra permissions, keeping only their role-based permissions
@@ -232,19 +188,8 @@ func ResetUserPermissions(c *gin.Context) {
 	adminID := c.MustGet("user_id").(uuid.UUID)
 	_ = services.LogAdminAction(adminID, "reset_permissions", &userID, nil, nil, nil, metadata)
 
-	// Get role-based permissions
-	rolePerms, exists := models.RolePermissions[user.Role]
-	if !exists {
-		rolePerms = []string{}
-	}
-
-	utils.RespondSuccess(c, http.StatusOK, gin.H{
-		"user_id":           user.ID,
-		"role":              user.Role,
-		"role_permissions":  rolePerms,
-		"extra_permissions": emptyPermissions,
-		"all_permissions":   utils.GetAllPermissions(user),
-	}, utils.MsgUserPermissionsReset)
+	response := utils.BuildUserResetPermissionsResponse(user, emptyPermissions)
+	utils.RespondSuccess(c, http.StatusOK, response, utils.MsgUserPermissionsReset)
 }
 
 // GetAuditLogs handles GET /api/admin/audit-logs with optional filters and pagination
