@@ -8,7 +8,7 @@ import (
 )
 
 // LogAdminAction logs an admin action to database
-func LogAdminAction(adminID uuid.UUID, actionType string, targetUserID, targetTeamID, targetSeasonID, targetMatchID *uuid.UUID, metadata map[string]interface{}) error {
+func LogAdminAction(adminID uuid.UUID, actionType string, targetUserID, targetTeamID, targetSeasonID, targetMatchID *uuid.UUID, metadata models.JSONBMap) error {
 	log := &models.AdminActionLog{
 		AdminID:        adminID,
 		ActionType:     actionType,

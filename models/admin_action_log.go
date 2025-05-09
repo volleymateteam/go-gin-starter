@@ -1,5 +1,4 @@
 // models/admin_action_log.go
-
 package models
 
 import (
@@ -14,10 +13,11 @@ import (
 type JSONBMap map[string]interface{}
 
 func (j JSONBMap) Value() (driver.Value, error) {
-	if len(j) == 0 {
-		return "{}", nil
+	bytes, err := json.Marshal(j)
+	if err != nil {
+		return nil, err
 	}
-	return json.Marshal(j)
+	return string(bytes), nil
 }
 
 func (j *JSONBMap) Scan(value interface{}) error {

@@ -8,11 +8,17 @@ import (
 
 // CreateAdminActionLog inserts a new admin action log entry
 func CreateAdminActionLog(log *models.AdminActionLog) error {
-	// return database.DB.Create(log).Error
+	// Create the log record
 	result := database.DB.Create(log)
 	fmt.Printf("CreateAdminActionLog SQL: %+v\n", result.Statement.SQL.String())
 	fmt.Printf("CreateAdminActionLog Error: %v\n", result.Error)
-	return result.Error
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// Fetch the inserted row from DB to populate fields like CreatedAt
+	return database.DB.First(log, "id = ?", log.ID).Error
 }
 
 // GetAuditLogs fetches audit logs with optional actionType filter and pagination

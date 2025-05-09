@@ -67,8 +67,17 @@ func UpdateUserByAdmin(c *gin.Context) {
 		updatedFields = append(updatedFields, "role")
 	}
 
-	metadata := map[string]interface{}{
+	metadata := models.JSONBMap{
 		"updated_fields": updatedFields,
+	}
+
+	// Get original user data for role change audit
+	if input.Role != "" {
+		originalUser, err := services.GetUserByID(userID)
+		if err == nil && originalUser != nil {
+			metadata["old_role"] = originalUser.Role
+			metadata["new_role"] = input.Role
+		}
 	}
 
 	errLog := services.LogAdminAction(adminID, "update_user", &userID, nil, nil, nil, metadata)
@@ -110,7 +119,7 @@ func DeleteUserByAdmin(c *gin.Context) {
 
 	// Add audit logging
 	adminID := c.MustGet("user_id").(uuid.UUID)
-	_ = services.LogAdminAction(adminID, "delete_user", &targetUserID, nil, nil, nil, nil)
+	_ = services.LogAdminAction(adminID, "delete_user", &targetUserID, nil, nil, nil, models.JSONBMap{})
 
 	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgUserDeleted)
 }
@@ -138,10 +147,13 @@ func UpdateUserPermissions(c *gin.Context) {
 
 	// add logging
 	adminID := c.MustGet("user_id").(uuid.UUID)
-	metadata := map[string]interface{}{
+	metadata := models.JSONBMap{
 		"new_permissions": input.Permissions,
 	}
-	_ = services.LogAdminAction(adminID, "update_permissions", &userID, nil, nil, nil, metadata)
+	errLog := services.LogAdminAction(adminID, "update_permissions", &userID, nil, nil, nil, metadata)
+	if errLog != nil {
+		fmt.Printf("LogAdminAction failed: %v\n", errLog)
+	}
 
 	// Get the updated user to return in the response
 	user, err := services.GetUserByID(userID)
@@ -225,7 +237,7 @@ func ResetUserPermissions(c *gin.Context) {
 
 	// Add audit logging
 	adminID := c.MustGet("user_id").(uuid.UUID)
-	_ = services.LogAdminAction(adminID, "reset_permissions", &userID, nil, nil, nil, nil)
+	_ = services.LogAdminAction(adminID, "reset_permissions", &userID, nil, nil, nil, models.JSONBMap{})
 
 	// Get role-based permissions
 	rolePerms, exists := models.RolePermissions[user.Role]
