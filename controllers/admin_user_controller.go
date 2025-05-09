@@ -111,10 +111,20 @@ func UpdateUserPermissions(c *gin.Context) {
 		return
 	}
 
+	// Get role-based permissions
+	rolePerms, exists := models.RolePermissions[user.Role]
+	if !exists {
+		rolePerms = []string{}
+	}
+
 	// Return the updated permissions in the response
 	utils.RespondSuccess(c, http.StatusOK, gin.H{
-		"user_id":     user.ID,
-		"permissions": user.ExtraPermissions,
+		"user_id":           user.ID,
+		"username":          user.Username,
+		"role":              user.Role,
+		"role_permissions":  rolePerms,
+		"extra_permissions": user.ExtraPermissions,
+		"all_permissions":   utils.GetAllPermissions(user),
 	}, utils.MsgUserPermissionsUpdated)
 }
 
