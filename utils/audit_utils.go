@@ -55,4 +55,11 @@ func BuildUserResetPermissionsMetadata(user *models.User) models.JSONBMap {
 	}
 }
 
-
+func BuildUserDeleteMetadata(user *models.User) models.JSONBMap {
+	return models.JSONBMap{
+		"username":   user.Username,
+		"email":      user.Email,
+		"role":       user.Role,
+		"deleted_at": user.DeletedAt,
+	}
+}

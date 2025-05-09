@@ -92,6 +92,13 @@ func DeleteUserByAdmin(c *gin.Context) {
 		return
 	}
 
+	// Fetch user before deletion
+	targetUser, err := services.GetUserByID(targetUserID)
+	if err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrUserNotFound)
+		return
+	}
+
 	// Delete user
 	err = services.DeleteUserByID(targetUserID)
 	if err != nil {
@@ -99,9 +106,11 @@ func DeleteUserByAdmin(c *gin.Context) {
 		return
 	}
 
+	metadata := utils.BuildUserDeleteMetadata(targetUser)
+
 	// Add audit logging
 	adminID := c.MustGet("user_id").(uuid.UUID)
-	_ = services.LogAdminAction(adminID, "delete_user", &targetUserID, nil, nil, nil, models.JSONBMap{})
+	_ = services.LogAdminAction(adminID, "delete_user", &targetUserID, nil, nil, nil, metadata)
 
 	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgUserDeleted)
 }
