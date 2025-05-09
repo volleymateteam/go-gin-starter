@@ -46,3 +46,13 @@ func BuildUserPermissionUpdateMetadata(user *models.User, newPermissions []strin
 		"email":           user.Email,
 	}
 }
+
+func BuildUserResetPermissionsMetadata(user *models.User) models.JSONBMap {
+	return models.JSONBMap{
+		"username": user.Username,
+		"email":    user.Email,
+		"role":     user.Role,
+	}
+}
+
+

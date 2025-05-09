@@ -217,9 +217,11 @@ func ResetUserPermissions(c *gin.Context) {
 		return
 	}
 
+	metadata := utils.BuildUserResetPermissionsMetadata(user)
+
 	// Add audit logging
 	adminID := c.MustGet("user_id").(uuid.UUID)
-	_ = services.LogAdminAction(adminID, "reset_permissions", &userID, nil, nil, nil, models.JSONBMap{})
+	_ = services.LogAdminAction(adminID, "reset_permissions", &userID, nil, nil, nil, metadata)
 
 	// Get role-based permissions
 	rolePerms, exists := models.RolePermissions[user.Role]
