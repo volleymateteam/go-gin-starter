@@ -33,6 +33,7 @@ const (
 	ErrInvalidMatchID        = "invalid match ID"
 	ErrInvalidCountry        = "invalid country value"
 	ErrInvalidSeasonName     = "invalid season name value"
+	ErrFetchAuditFaild       = "failed to fetch audit logs"
 )
 
 // Common success messages
@@ -76,4 +77,5 @@ const (
 	MsgUserPermissionsUpdated = "user permissions updated successfully"
 	MsgUserPermissionsFetched = "user permissions fetched successfully"
 	MsgUserPermissionsReset   = "user permissions reset successfully"
+	MsgAuditLogsFetched       = "Audit logs fetched successfully"
 )

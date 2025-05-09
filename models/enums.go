@@ -28,6 +28,7 @@ var RolePermissions = map[RoleEnum][]string{
 		"manage_season",
 		"manage_waitlist",
 		"manage_roles",
+		"view_audit_logs",
 		"manage_permissions",
 		"manage_notifications",
 		"manage_settings",

@@ -24,6 +24,8 @@ func main() {
 		&models.Season{},
 		&models.Team{},
 		&models.Match{},
+		&models.AdminActionLog{},
+		// &models.UserActionLog{},
 	)
 
 	r := gin.Default()

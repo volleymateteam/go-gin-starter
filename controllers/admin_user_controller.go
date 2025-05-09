@@ -48,6 +48,30 @@ func UpdateUserByAdmin(c *gin.Context) {
 		return
 	}
 
+	// Audit logging
+	adminID := c.MustGet("user_id").(uuid.UUID)
+
+	// Dynamically build list of updated fields
+	updatedFields := []string{}
+	if input.Username != "" {
+		updatedFields = append(updatedFields, "username")
+	}
+	if input.Email != "" {
+		updatedFields = append(updatedFields, "email")
+	}
+	if input.Gender != "" {
+		updatedFields = append(updatedFields, "gender")
+	}
+	if input.Role != "" {
+		updatedFields = append(updatedFields, "role")
+	}
+
+	metadata := map[string]interface{}{
+		"updated_fields": updatedFields,
+	}
+
+	_ = services.LogAdminAction(adminID, "update_user", &userID, nil, nil, nil, metadata)
+
 	// Prepare response
 	response := dto.AdminUserResponse{
 		ID:        updatedUser.ID,
@@ -80,6 +104,10 @@ func DeleteUserByAdmin(c *gin.Context) {
 		return
 	}
 
+	// Add audit logging
+	adminID := c.MustGet("user_id").(uuid.UUID)
+	_ = services.LogAdminAction(adminID, "delete_user", &targetUserID, nil, nil, nil, nil)
+
 	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgUserDeleted)
 }
 
@@ -103,6 +131,13 @@ func UpdateUserPermissions(c *gin.Context) {
 		utils.RespondError(c, http.StatusInternalServerError, fmt.Sprintf("Failed to update permissions: %v", err))
 		return
 	}
+
+	// add logging
+	adminID := c.MustGet("user_id").(uuid.UUID)
+	metadata := map[string]interface{}{
+		"new_permissions": input.Permissions,
+	}
+	_ = services.LogAdminAction(adminID, "update_permissions", &userID, nil, nil, nil, metadata)
 
 	// Get the updated user to return in the response
 	user, err := services.GetUserByID(userID)
@@ -184,6 +219,10 @@ func ResetUserPermissions(c *gin.Context) {
 		return
 	}
 
+	// Add audit logging
+	adminID := c.MustGet("user_id").(uuid.UUID)
+	_ = services.LogAdminAction(adminID, "reset_permissions", &userID, nil, nil, nil, nil)
+
 	// Get role-based permissions
 	rolePerms, exists := models.RolePermissions[user.Role]
 	if !exists {
@@ -197,4 +236,14 @@ func ResetUserPermissions(c *gin.Context) {
 		"extra_permissions": emptyPermissions,
 		"all_permissions":   utils.GetAllPermissions(user),
 	}, utils.MsgUserPermissionsReset)
+}
+
+func GetAuditLogs(c *gin.Context) {
+	logs, err := services.GetAuditLogs()
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrFetchAuditFaild)
+		return
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, logs, utils.MsgAuditLogsFetched)
 }
