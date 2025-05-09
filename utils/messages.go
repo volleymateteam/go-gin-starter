@@ -75,4 +75,5 @@ const (
 	MsgScoutUploaded          = "scout file uploaded and parsed successfully"
 	MsgUserPermissionsUpdated = "user permissions updated successfully"
 	MsgUserPermissionsFetched = "user permissions fetched successfully"
+	MsgUserPermissionsReset   = "user permissions reset successfully"
 )

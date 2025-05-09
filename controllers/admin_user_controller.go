@@ -149,3 +149,42 @@ func GetUserPermissions(c *gin.Context) {
 		"all_permissions": utils.GetAllPermissions(user),
 	}, utils.MsgUserPermissionsFetched)
 }
+
+// ResetUserPermissions resets a user's extra permissions, keeping only their role-based permissions
+func ResetUserPermissions(c *gin.Context) {
+	idParam := c.Param("id")
+	userID, err := uuid.Parse(idParam)
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		return
+	}
+
+	user, err := services.GetUserByID(userID)
+	if err != nil {
+		utils.RespondError(c, http.StatusNotFound, utils.ErrUserNotFound)
+		return
+	}
+
+	// Reset to an empty array - this only affects extra permissions
+	// The role-based permissions will still be retained through the HasPermission function
+	emptyPermissions := make([]string, 0)
+	err = services.UpdateUserPermissions(userID, emptyPermissions)
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, fmt.Sprintf("Failed to reset permissions: %v", err))
+		return
+	}
+
+	// Get role-based permissions
+	rolePerms, exists := models.RolePermissions[user.Role]
+	if !exists {
+		rolePerms = []string{}
+	}
+
+	utils.RespondSuccess(c, http.StatusOK, gin.H{
+		"user_id":           user.ID,
+		"role":              user.Role,
+		"role_permissions":  rolePerms,
+		"extra_permissions": emptyPermissions,
+		"all_permissions":   utils.GetAllPermissions(user),
+	}, utils.MsgUserPermissionsReset)
+}
