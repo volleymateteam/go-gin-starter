@@ -37,3 +37,12 @@ func BuildUserUpdateMetadata(originalUser *models.User, input *dto.AdminUpdateUs
 
 	return metadata
 }
+
+// BuildUserPermissionUpdateMetadata builds audit log metadata for permission updates
+func BuildUserPermissionUpdateMetadata(user *models.User, newPermissions []string) models.JSONBMap {
+	return models.JSONBMap{
+		"new_permissions": newPermissions,
+		"username":        user.Username,
+		"email":           user.Email,
+	}
+}

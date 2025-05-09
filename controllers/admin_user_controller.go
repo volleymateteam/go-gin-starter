@@ -56,34 +56,10 @@ func UpdateUserByAdmin(c *gin.Context) {
 		return
 	}
 
+	metadata := utils.BuildUserUpdateMetadata(originalUser, &input)
+
 	// Prepare audit logging
 	adminID := c.MustGet("user_id").(uuid.UUID)
-
-	// Dynamically build list of updated fields
-	updatedFields := []string{}
-	if input.Username != "" {
-		updatedFields = append(updatedFields, "username")
-	}
-	if input.Email != "" {
-		updatedFields = append(updatedFields, "email")
-	}
-	if input.Gender != "" {
-		updatedFields = append(updatedFields, "gender")
-	}
-	if input.Role != "" {
-		updatedFields = append(updatedFields, "role")
-	}
-
-	// Build metadata including old/new role if role was updated
-	metadata := models.JSONBMap{
-		"updated_fields": updatedFields,
-		"username":       updatedUser.Username,
-		"email":          updatedUser.Email,
-	}
-	if input.Role != "" && input.Role != originalUser.Role {
-		metadata["old_role"] = originalUser.Role
-		metadata["new_role"] = input.Role
-	}
 
 	// Log admin action
 	errLog := services.LogAdminAction(adminID, "update_user", &userID, nil, nil, nil, metadata)
@@ -159,11 +135,7 @@ func UpdateUserPermissions(c *gin.Context) {
 	}
 
 	// Build metadata with username + email
-	metadata := models.JSONBMap{
-		"new_permissions": input.Permissions,
-		"username":        user.Username,
-		"email":           user.Email,
-	}
+	metadata := utils.BuildUserPermissionUpdateMetadata(user, input.Permissions)
 
 	adminID := c.MustGet("user_id").(uuid.UUID)
 
