@@ -3,7 +3,8 @@ package controllers
 import (
 	"go-gin-starter/dto"
 	"go-gin-starter/services"
-	"go-gin-starter/utils"
+	"go-gin-starter/pkg/constants"
+	httpPkg "go-gin-starter/pkg/http"
 	"net/http"
 	"path/filepath"
 
@@ -15,107 +16,107 @@ import (
 func CreateSeason(c *gin.Context) {
 	var input dto.CreateSeasonInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidInput)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidInput)
 		return
 	}
 
 	season, err := services.CreateSeasonService(&input)
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternalServer)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInternalServer)
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusCreated, season, utils.MsgSeasonCreated)
+	httpPkg.RespondSuccess(c, http.StatusCreated, season, constants.MsgSeasonCreated)
 }
 
 // GetAllSeasons handler for getting all seasons
 func GetAllSeasons(c *gin.Context) {
 	seasons, err := services.GetAllSeasonsService()
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrDatabase)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrDatabase)
 		return
 	}
-	utils.RespondSuccess(c, http.StatusOK, seasons, utils.MsgSeasonsFetched)
+	httpPkg.RespondSuccess(c, http.StatusOK, seasons, constants.MsgSeasonsFetched)
 }
 
 // GetSeasonByID handler for getting a season by ID
 func GetSeasonByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidUserID)
 		return
 	}
 
 	season, err := services.GetSeasonByIDService(id)
 	if err != nil {
-		utils.RespondError(c, http.StatusNotFound, utils.ErrSeasonNotFound)
+		httpPkg.RespondError(c, http.StatusNotFound, constants.ErrSeasonNotFound)
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, season, utils.MsgSeasonFetched)
+	httpPkg.RespondSuccess(c, http.StatusOK, season, constants.MsgSeasonFetched)
 }
 
 // UpdateSeason handler for updating a season
 func UpdateSeason(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidUserID)
 		return
 	}
 
 	var input dto.UpdateSeasonInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidInput)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidInput)
 		return
 	}
 
 	season, err := services.UpdateSeasonService(id, &input)
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternalServer)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInternalServer)
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, season, utils.MsgSeasonUpdated)
+	httpPkg.RespondSuccess(c, http.StatusOK, season, constants.MsgSeasonUpdated)
 }
 
 // DeleteSeason handler for deleting a season
 func DeleteSeason(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidUserID)
 		return
 	}
 
 	if err := services.DeleteSeasonService(id); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternalServer)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInternalServer)
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgSeasonDeleted)
+	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgSeasonDeleted)
 }
 
 // UploadSeasonLogo handler for uploading a season logo
 func UploadSeasonLogo(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidUserID)
 		return
 	}
 
 	file, err := c.FormFile("logo")
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrFileUploadRequired)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrFileUploadRequired)
 		return
 	}
 
 	if file.Size > 2*1024*1024 {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrLogoTooLarge)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrLogoTooLarge)
 		return
 	}
 
 	ext := filepath.Ext(file.Filename)
 	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidFileType)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidFileType)
 		return
 	}
 
@@ -123,17 +124,17 @@ func UploadSeasonLogo(c *gin.Context) {
 	savePath := filepath.Join("uploads/logos/seasons", newFileName)
 
 	if err := c.SaveUploadedFile(file, savePath); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrUploadFailed)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrUploadFailed)
 		return
 	}
 
 	// Update in DB
 	if err := services.UpdateSeasonLogoService(id, newFileName); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrDatabase)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrDatabase)
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, gin.H{
+	httpPkg.RespondSuccess(c, http.StatusOK, gin.H{
 		"logo_url": "/uploads/logos/seasons/" + newFileName,
-	}, utils.MsgLogoUploaded)
+	}, constants.MsgLogoUploaded)
 }

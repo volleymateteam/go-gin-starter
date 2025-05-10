@@ -49,3 +49,6 @@ TODO.md
 
 
 scripts/create_super_admin.go
+
+# Project binary
+go-gin-starter

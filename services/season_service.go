@@ -5,7 +5,7 @@ import (
 	"go-gin-starter/dto"
 	"go-gin-starter/models"
 	"go-gin-starter/repositories"
-	"go-gin-starter/utils"
+	"go-gin-starter/pkg/constants"
 
 	"github.com/google/uuid"
 )
@@ -76,7 +76,7 @@ func GetAllSeasonsService() ([]dto.SeasonResponse, error) {
 func GetSeasonByIDService(id uuid.UUID) (*dto.SeasonResponse, error) {
 	season, err := repositories.GetSeasonByID(id)
 	if err != nil {
-		return nil, errors.New(utils.ErrSeasonNotFound)
+		return nil, errors.New(constants.ErrSeasonNotFound)
 	}
 
 	response := dto.SeasonResponse{
@@ -100,7 +100,7 @@ func GetSeasonByIDService(id uuid.UUID) (*dto.SeasonResponse, error) {
 func UpdateSeasonService(id uuid.UUID, input *dto.UpdateSeasonInput) (*dto.SeasonResponse, error) {
 	season, err := repositories.GetSeasonByID(id)
 	if err != nil {
-		return nil, errors.New(utils.ErrSeasonNotFound)
+		return nil, errors.New(constants.ErrSeasonNotFound)
 	}
 
 	if input.Name != "" {
@@ -158,7 +158,7 @@ func DeleteSeasonService(id uuid.UUID) error {
 func UpdateSeasonLogoService(seasonID uuid.UUID, logoFilename string) error {
 	season, err := repositories.GetSeasonByID(seasonID)
 	if err != nil {
-		return errors.New(utils.ErrSeasonNotFound)
+		return errors.New(constants.ErrSeasonNotFound)
 	}
 
 	season.Logo = logoFilename

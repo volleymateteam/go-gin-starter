@@ -3,7 +3,9 @@ package controllers
 import (
 	"go-gin-starter/dto"
 	"go-gin-starter/services"
-	"go-gin-starter/utils"
+	"go-gin-starter/pkg/constants"
+	httpPkg "go-gin-starter/pkg/http"
+	authPkg "go-gin-starter/pkg/auth"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -16,19 +18,19 @@ import (
 func GetProfile(c *gin.Context) {
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized)
+		httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrUnauthorized)
 		return
 	}
 
 	userID, ok := userIDInterface.(uuid.UUID)
 	if !ok {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInvalidUserID)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInvalidUserID)
 		return
 	}
 
 	user, err := services.GetUserByID(userID)
 	if err != nil {
-		utils.RespondError(c, http.StatusNotFound, utils.ErrUserNotFound)
+		httpPkg.RespondError(c, http.StatusNotFound, constants.ErrUserNotFound)
 		return
 	}
 
@@ -42,31 +44,31 @@ func GetProfile(c *gin.Context) {
 		CreatedAt: user.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
 	}
-	utils.RespondSuccess(c, http.StatusOK, response, utils.MsgProfileFetched)
+	httpPkg.RespondSuccess(c, http.StatusOK, response, constants.MsgProfileFetched)
 }
 
 func UpdateProfile(c *gin.Context) {
 	var input dto.UpdateUserInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, err.Error())
+		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized)
+		httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrUnauthorized)
 		return
 	}
 
 	userID, ok := userIDInterface.(uuid.UUID)
 	if !ok {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInvalidUserID)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInvalidUserID)
 		return
 	}
 
 	user, err := services.GetUserByID(userID)
 	if err != nil {
-		utils.RespondError(c, http.StatusNotFound, utils.ErrUserNotFound)
+		httpPkg.RespondError(c, http.StatusNotFound, constants.ErrUserNotFound)
 		return
 	}
 
@@ -78,114 +80,114 @@ func UpdateProfile(c *gin.Context) {
 	}
 
 	if err := services.UpdateUser(user); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgUserUpdated)
+	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgUserUpdated)
 }
 
 func ChangePassword(c *gin.Context) {
 	var input dto.ChangePasswordInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, err.Error())
+		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized)
+		httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrUnauthorized)
 		return
 	}
 
 	userID, ok := userIDInterface.(uuid.UUID)
 	if !ok {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInvalidUserID)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInvalidUserID)
 		return
 	}
 
 	user, err := services.GetUserByID(userID)
 	if err != nil {
-		utils.RespondError(c, http.StatusNotFound, utils.ErrUserNotFound)
+		httpPkg.RespondError(c, http.StatusNotFound, constants.ErrUserNotFound)
 		return
 	}
 
-	if !utils.CheckPasswordHash(input.OldPassword, user.Password) {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrPasswordMismatch)
+	if !authPkg.CheckPasswordHash(input.OldPassword, user.Password) {
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrPasswordMismatch)
 		return
 	}
 
-	hashedPassword, err := utils.HashPassword(input.NewPassword)
+	hashedPassword, err := authPkg.HashPassword(input.NewPassword)
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	user.Password = hashedPassword
 
 	if err := services.UpdateUser(user); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgPasswordChanged)
+	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgPasswordChanged)
 }
 
 func DeleteProfile(c *gin.Context) {
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized)
+		httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrUnauthorized)
 		return
 	}
 
 	userID, ok := userIDInterface.(uuid.UUID)
 	if !ok {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInvalidUserID)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInvalidUserID)
 		return
 	}
 
 	if err := services.DeleteUserByID(userID); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgUserDeleted)
+	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgUserDeleted)
 }
 
 func UploadAvatar(c *gin.Context) {
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized)
+		httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrUnauthorized)
 		return
 	}
 
 	userID, ok := userIDInterface.(uuid.UUID)
 	if !ok {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInvalidUserID)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInvalidUserID)
 		return
 	}
 
 	user, err := services.GetUserByID(userID)
 	if err != nil {
-		utils.RespondError(c, http.StatusNotFound, utils.ErrUserNotFound)
+		httpPkg.RespondError(c, http.StatusNotFound, constants.ErrUserNotFound)
 		return
 	}
 
 	file, err := c.FormFile("avatar")
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, "Avatar file is required")
+		httpPkg.RespondError(c, http.StatusBadRequest, "Avatar file is required")
 		return
 	}
 
 	const maxAvatarSize = 2 * 1024 * 1024
 	if file.Size > maxAvatarSize {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrAvatarTooLarge)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrAvatarTooLarge)
 		return
 	}
 
 	ext := filepath.Ext(file.Filename)
 	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidFileType)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidFileType)
 		return
 	}
 
@@ -193,17 +195,17 @@ func UploadAvatar(c *gin.Context) {
 	savePath := filepath.Join("uploads/avatars", newFileName)
 
 	if err := c.SaveUploadedFile(file, savePath); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrUploadFailed)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrUploadFailed)
 		return
 	}
 
 	user.Avatar = newFileName
 	if err := services.UpdateUser(user); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, gin.H{"avatar_url": "/uploads/avatars/" + newFileName}, utils.MsgAvatarUploaded)
+	httpPkg.RespondSuccess(c, http.StatusOK, gin.H{"avatar_url": "/uploads/avatars/" + newFileName}, constants.MsgAvatarUploaded)
 }
 
 func GetAllUsers(c *gin.Context) {
@@ -215,7 +217,7 @@ func GetAllUsers(c *gin.Context) {
 
 	users, total, err := services.GetUsersWithPagination(page, limit)
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -235,19 +237,19 @@ func GetAllUsers(c *gin.Context) {
 
 	totalPages := (int(total) + limit - 1) / limit
 
-	utils.RespondSuccess(c, http.StatusOK, gin.H{
+	httpPkg.RespondSuccess(c, http.StatusOK, gin.H{
 		"users":        userResponses,
 		"total_users":  total,
 		"total_pages":  totalPages,
 		"current_page": page,
-	}, utils.MsgUsersFetched)
+	}, constants.MsgUsersFetched)
 }
 
 func UpdateUserProfile(c *gin.Context) {
 	userIDParam := c.Param("id")
 	targetUserID, err := uuid.Parse(userIDParam)
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidUserID)
 		return
 	}
 
@@ -256,13 +258,13 @@ func UpdateUserProfile(c *gin.Context) {
 		Email    string `json:"email" binding:"omitempty,email"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, err.Error())
+		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	user, err := services.GetUserByID(targetUserID)
 	if err != nil {
-		utils.RespondError(c, http.StatusNotFound, utils.ErrUserNotFound)
+		httpPkg.RespondError(c, http.StatusNotFound, constants.ErrUserNotFound)
 		return
 	}
 
@@ -274,26 +276,26 @@ func UpdateUserProfile(c *gin.Context) {
 	}
 
 	if err := services.UpdateUser(user); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrDatabase)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrDatabase)
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgUserUpdated)
+	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgUserUpdated)
 }
 
 func DeleteUserAccount(c *gin.Context) {
 	userIDParam := c.Param("id")
 	targetUserID, err := uuid.Parse(userIDParam)
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidUserID)
 		return
 	}
 
 	err = services.DeleteUserByID(targetUserID)
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrDatabase)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrDatabase)
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgUserDeleted)
+	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgUserDeleted)
 }

@@ -4,8 +4,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"go-gin-starter/dto"
+	authPkg "go-gin-starter/pkg/auth"
+	"go-gin-starter/pkg/constants"
+	httpPkg "go-gin-starter/pkg/http"
 	"go-gin-starter/services"
-	"go-gin-starter/utils"
 	"net/http"
 	"time"
 
@@ -15,18 +17,18 @@ import (
 func Register(c *gin.Context) {
 	var input dto.RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, err.Error())
+		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if !utils.IsStrongPassword(input.Password) {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrStrongPassword)
+	if !authPkg.IsStrongPassword(input.Password) {
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrStrongPassword)
 		return
 	}
 
 	user, err := services.CreateUser(input.Username, input.Email, input.Password, input.Gender)
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -40,25 +42,25 @@ func Register(c *gin.Context) {
 		CreatedAt: user.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
 	}
-	utils.RespondSuccess(c, http.StatusCreated, response, utils.MsgUserRegistered)
+	httpPkg.RespondSuccess(c, http.StatusCreated, response, constants.MsgUserRegistered)
 }
 
 func Login(c *gin.Context) {
 	var input dto.LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidCredentials)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidCredentials)
 		return
 	}
 
 	user, err := services.GetUserByEmail(input.Email)
-	if err != nil || !utils.CheckPasswordHash(input.Password, user.Password) {
-		utils.RespondError(c, http.StatusUnauthorized, utils.ErrInvalidCredentials)
+	if err != nil || !authPkg.CheckPasswordHash(input.Password, user.Password) {
+		httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrInvalidCredentials)
 		return
 	}
 
-	token, err := utils.GenerateJWT(user.ID)
+	token, err := authPkg.GenerateJWT(user.ID)
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrTokenGenerationFailed)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrTokenGenerationFailed)
 		return
 	}
 
@@ -68,13 +70,13 @@ func Login(c *gin.Context) {
 func ForgotPassword(c *gin.Context) {
 	var input dto.ForgotPasswordInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, err.Error())
+		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrResetTokenFailed)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrResetTokenFailed)
 		return
 	}
 	resetToken := hex.EncodeToString(b)
@@ -82,30 +84,30 @@ func ForgotPassword(c *gin.Context) {
 
 	err := services.UpdateResetToken(input.Email, resetToken, expiry)
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, err.Error())
+		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, gin.H{"reset_token": resetToken}, utils.MsgResetTokenCreated)
+	httpPkg.RespondSuccess(c, http.StatusOK, gin.H{"reset_token": resetToken}, constants.MsgResetTokenCreated)
 }
 
 func ResetPassword(c *gin.Context) {
 	var input dto.ResetPasswordInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, err.Error())
+		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if !utils.IsStrongPassword(input.NewPassword) {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrStrongPassword)
+	if !authPkg.IsStrongPassword(input.NewPassword) {
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrStrongPassword)
 		return
 	}
 
 	err := services.ResetUserPassword(input.Token, input.NewPassword)
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, err.Error())
+		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgPasswordReset)
+	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgPasswordReset)
 }

@@ -5,7 +5,7 @@ import (
 	"go-gin-starter/dto"
 	"go-gin-starter/models"
 	"go-gin-starter/repositories"
-	"go-gin-starter/utils"
+	authPkg "go-gin-starter/pkg/auth"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,7 +13,7 @@ import (
 
 // CreateUser registers a new user
 func CreateUser(username, email, password, gender string) (*models.User, error) {
-	hashedPassword, err := utils.HashPassword(password)
+	hashedPassword, err := authPkg.HashPassword(password)
 	if err != nil {
 		return nil, err
 	}
@@ -126,4 +126,19 @@ func AdminUpdateUser(id uuid.UUID, input *dto.AdminUpdateUserInput) (*models.Use
 	}
 
 	return user, nil
+}
+
+func UpdateUserPermissions(userID uuid.UUID, permissions []string) error {
+	user, err := repositories.FindUserByID(userID)
+	if err != nil {
+		return err
+	}
+
+	user.ExtraPermissions = models.StringArray(permissions) // Convert []string to StringArray
+
+	if err := repositories.UpdateUser(user); err != nil {
+		return err
+	}
+
+	return nil
 }

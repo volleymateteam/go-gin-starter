@@ -6,7 +6,7 @@ import (
 
 	"go-gin-starter/database"
 	"go-gin-starter/models"
-	"go-gin-starter/utils"
+	authPkg "go-gin-starter/pkg/auth"
 )
 
 // GetUserByEmail finds a user by their email (used for login and forgot password)
@@ -43,7 +43,7 @@ func ResetUserPassword(token, newPassword string) error {
 		return errors.New("reset token has expired")
 	}
 
-	hashedPassword, err := utils.HashPassword(newPassword)
+	hashedPassword, err := authPkg.HashPassword(newPassword)
 	if err != nil {
 		return err
 	}

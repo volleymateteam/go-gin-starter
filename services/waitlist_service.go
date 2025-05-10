@@ -4,8 +4,9 @@ import (
 	"errors"
 	"go-gin-starter/dto"
 	"go-gin-starter/models"
+	authPkg "go-gin-starter/pkg/auth"
+	"go-gin-starter/pkg/constants"
 	"go-gin-starter/repositories"
-	"go-gin-starter/utils"
 
 	"github.com/google/uuid"
 )
@@ -17,7 +18,7 @@ func SubmitWaitlistEntry(email, source string) error {
 		return err
 	}
 	if exists {
-		return errors.New(utils.ErrAlreadyInWaitlist)
+		return errors.New(constants.ErrAlreadyInWaitlist)
 	}
 	return repositories.CreateWaitlistEntry(email, source)
 }
@@ -48,8 +49,8 @@ func ApproveWaitlistEntry(id uuid.UUID) error {
 	}
 
 	// Create user with email as username and random password
-	randomPassword := utils.GenerateRandomPassword()
-	hashedPassword, err := utils.HashPassword(randomPassword)
+	randomPassword := authPkg.GenerateRandomPassword()
+	hashedPassword, err := authPkg.HashPassword(randomPassword)
 	if err != nil {
 		return err
 	}
