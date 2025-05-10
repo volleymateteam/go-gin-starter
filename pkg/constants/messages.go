@@ -1,6 +1,6 @@
 package constants
 
-// Common error messages
+// Error messages
 const (
 	ErrUnauthorized          = "unauthorized"
 	ErrForbidden             = "access denied"
@@ -35,12 +35,25 @@ const (
 	ErrInvalidCountry        = "invalid country value"
 	ErrInvalidSeasonName     = "invalid season name value"
 	ErrFetchAuditFaild       = "failed to fetch audit logs"
+	ErrInvalidTeamID         = "invalid team ID"
+	ErrInvalidSeasonID       = "invalid season ID"
+	ErrInvalidEmail          = "invalid email"
+	ErrInvalidPassword       = "invalid password"
+	ErrEmailAlreadyExists    = "email already exists"
+	ErrUserAlreadyExists     = "user already exists"
+	ErrPasswordsDoNotMatch   = "passwords do not match"
+	ErrExpiredToken          = "token has expired"
+	ErrRefreshTokenExpired   = "refresh token has expired"
+	ErrDatabaseConnection    = "database connection error"
+	ErrRateLimitExceeded     = "rate limit exceeded"
 )
 
-// Common success messages
+// Success messages
 const (
+	MsgHealthy                = "service is healthy"
 	MsgProfileFetched         = "profile fetched successfully"
 	MsgUserRegistered         = "user registered successfully"
+	MsgUserCreated            = "user created successfully"
 	MsgUserUpdated            = "user updated successfully"
 	MsgUserDeleted            = "user deleted successfully"
 	MsgPasswordChanged        = "password changed successfully"
@@ -48,6 +61,10 @@ const (
 	MsgResetTokenCreated      = "reset token generated successfully"
 	MsgPasswordReset          = "password reset successfully"
 	MsgUsersFetched           = "users fetched successfully"
+	MsgUserFetched            = "user fetched successfully"
+	MsgUserLoginSuccess       = "login successful"
+	MsgUserLogoutSuccess      = "logout successful"
+	MsgTokenRefreshed         = "token refreshed successfully"
 	MsgWaitlistFetched        = "waitlist fetched successfully"
 	MsgWaitlistSubmitted      = "waitlist submitted successfully"
 	MsgWaitlistApproved       = "waitlist approved successfully"
@@ -77,6 +94,6 @@ const (
 	MsgScoutUploaded          = "scout file uploaded and parsed successfully"
 	MsgUserPermissionsUpdated = "user permissions updated successfully"
 	MsgUserPermissionsFetched = "user permissions fetched successfully"
-	MsgUserPermissionsReset   = "user permissions reset successfully"
-	MsgAuditLogsFetched       = "Audit logs fetched successfully"
+	MsgUserPermissionsReset   = "user permissions reset to role defaults"
+	MsgAuditLogsFetched       = "audit logs fetched successfully"
 )
