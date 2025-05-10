@@ -10,6 +10,7 @@ import (
 // CreateWaitlistEntry inserts a new waitlist record
 func CreateWaitlistEntry(email, source string) error {
 	entry := models.WaitlistEntry{
+		ID:     uuid.New(),
 		Email:  email,
 		Source: source,
 	}

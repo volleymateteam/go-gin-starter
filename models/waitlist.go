@@ -7,7 +7,8 @@ import (
 )
 
 type WaitlistEntry struct {
-	ID        uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	ID uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	//ID        uuid.UUID `gorm:"type:uuid;primaryKey"`
 	Email     string    `gorm:"unique;not null"`
 	Source    string    `gorm:"type:text"` // (optional) "landing_page", "mobile_app", etc.
 	CreatedAt time.Time `gorm:"autoCreateTime"`
