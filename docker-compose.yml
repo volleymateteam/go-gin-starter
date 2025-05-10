@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    container_name: go-gin-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-go_gin_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # API server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go-gin-api
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      - ENV=production
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_NAME=${DB_NAME:-go_gin_db}
+      - JWT_SECRET=${JWT_SECRET:-your_jwt_secret_key}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+      - PORT=8080
+      - APP_VERSION=${APP_VERSION:-0.1.0}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  postgres_data:
