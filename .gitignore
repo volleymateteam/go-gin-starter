@@ -52,4 +52,5 @@ scripts/create_super_admin.go
 
 # Project binary
 go-gin-starter
+volleymate-backend
 vendor/
