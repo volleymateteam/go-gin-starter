@@ -1,4 +1,4 @@
-package utils
+package constants
 
 // Common error messages
 const (

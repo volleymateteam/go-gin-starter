@@ -1,4 +1,4 @@
-package utils
+package auth
 
 import (
 	"go-gin-starter/models"

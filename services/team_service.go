@@ -5,7 +5,9 @@ import (
 	"go-gin-starter/dto"
 	"go-gin-starter/models"
 	"go-gin-starter/repositories"
-	"go-gin-starter/utils"
+	storagePkg "go-gin-starter/pkg/storage"
+	validationPkg "go-gin-starter/pkg/validation"
+	"go-gin-starter/pkg/constants"
 	"mime/multipart"
 	"path/filepath"
 
@@ -33,7 +35,7 @@ func CreateTeamService(input *dto.CreateTeamInput) (*models.Team, error) {
 func GetTeamByIDService(id uuid.UUID) (*dto.TeamResponse, error) {
 	team, err := repositories.GetTeamByID(id)
 	if err != nil {
-		return nil, errors.New(utils.ErrTeamNotFound)
+		return nil, errors.New(constants.ErrTeamNotFound)
 	}
 	response := mapTeamToResponse(team)
 	return &response, nil
@@ -58,7 +60,7 @@ func GetAllTeamsService() ([]dto.TeamResponse, error) {
 func UpdateTeamService(id uuid.UUID, input *dto.UpdateTeamInput) (*dto.TeamResponse, error) {
 	team, err := repositories.GetTeamByID(id)
 	if err != nil {
-		return nil, errors.New(utils.ErrTeamNotFound)
+		return nil, errors.New(constants.ErrTeamNotFound)
 	}
 
 	if input.Name != "" {
@@ -91,7 +93,7 @@ func DeleteTeamService(id uuid.UUID) error {
 func UpdateTeamLogoService(id uuid.UUID, logoFilename string) error {
 	team, err := repositories.GetTeamByID(id)
 	if err != nil {
-		return errors.New(utils.ErrTeamNotFound)
+		return errors.New(constants.ErrTeamNotFound)
 	}
 
 	team.Logo = logoFilename
@@ -101,17 +103,17 @@ func UpdateTeamLogoService(id uuid.UUID, logoFilename string) error {
 
 // UploadAndSaveTeamLogoService handles validation + saving + DB update
 func UploadAndSaveTeamLogoService(teamID uuid.UUID, file *multipart.FileHeader) (string, string, error) {
-	if err := utils.ValidateImageFile(file); err != nil {
+	if err := validationPkg.ValidateImageFile(file); err != nil {
 		return "", "", err
 	}
 
 	ext := filepath.Ext(file.Filename)
-	newFileName := utils.GenerateTeamLogoFileName(ext)
-	savePath := utils.BuildTeamLogoPath(newFileName)
+	newFileName := storagePkg.GenerateTeamLogoFileName(ext)
+	savePath := storagePkg.BuildTeamLogoPath(newFileName)
 
 	team, err := repositories.GetTeamByID(teamID)
 	if err != nil {
-		return "", "", errors.New(utils.ErrTeamNotFound)
+		return "", "", errors.New(constants.ErrTeamNotFound)
 	}
 
 	team.Logo = newFileName

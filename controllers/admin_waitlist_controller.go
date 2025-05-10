@@ -2,7 +2,8 @@ package controllers
 
 import (
 	"go-gin-starter/services"
-	"go-gin-starter/utils"
+	"go-gin-starter/pkg/constants"
+	httpPkg "go-gin-starter/pkg/http"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -13,10 +14,10 @@ import (
 func GetAllWaitlist(c *gin.Context) {
 	waitlist, err := services.GetAllWaitlistEntries()
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrDatabase)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrDatabase)
 		return
 	}
-	utils.RespondSuccess(c, http.StatusOK, waitlist, utils.MsgWaitlistFetched)
+	httpPkg.RespondSuccess(c, http.StatusOK, waitlist, constants.MsgWaitlistFetched)
 }
 
 // ApproveWaitlistEntry approves a waitlist entry and creates a user
@@ -24,16 +25,16 @@ func ApproveWaitlistEntry(c *gin.Context) {
 	idParam := c.Param("id")
 	entryID, err := uuid.Parse(idParam)
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidUserID)
 		return
 	}
 
 	if err := services.ApproveWaitlistEntry(entryID); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgWaitlistApproved)
+	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgWaitlistApproved)
 }
 
 // RejectWaitlistEntry rejects a waitlist entry
@@ -41,14 +42,14 @@ func RejectWaitlistEntry(c *gin.Context) {
 	idParam := c.Param("id")
 	entryID, err := uuid.Parse(idParam)
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidUserID)
 		return
 	}
 
 	if err := services.RejectWaitlistEntry(entryID); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgWaitlistRejected)
+	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgWaitlistRejected)
 }

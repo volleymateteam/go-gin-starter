@@ -2,8 +2,9 @@ package controllers
 
 import (
 	"go-gin-starter/dto"
+	"go-gin-starter/pkg/constants"
+	httpPkg "go-gin-starter/pkg/http"
 	"go-gin-starter/services"
-	"go-gin-starter/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -13,15 +14,15 @@ import (
 func SubmitWaitlist(c *gin.Context) {
 	var input dto.CreateWaitlistEntryInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidInput)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidInput)
 		return
 	}
 
 	err := services.SubmitWaitlistEntry(input.Email, input.Source)
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, err.Error())
+		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusCreated, nil, utils.MsgWaitlistSubmitted)
+	httpPkg.RespondSuccess(c, http.StatusCreated, nil, constants.MsgWaitlistSubmitted)
 }

@@ -4,7 +4,8 @@ import (
 	"log"
 	"net/http"
 
-	"go-gin-starter/utils"
+	"go-gin-starter/pkg/constants"
+	httpPkg "go-gin-starter/pkg/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,7 +16,7 @@ func ErrorRecovery() gin.HandlerFunc {
 		defer func() {
 			if rec := recover(); rec != nil {
 				log.Printf("[PANIC RECOVERED] %v\n", rec)
-				utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternalServer)
+				httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInternalServer)
 			}
 		}()
 		c.Next()

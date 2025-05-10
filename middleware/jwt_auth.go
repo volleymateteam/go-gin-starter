@@ -4,7 +4,9 @@ import (
 	"net/http"
 	"strings"
 
-	"go-gin-starter/utils"
+	authPkg "go-gin-starter/pkg/auth"
+	"go-gin-starter/pkg/constants"
+	httpPkg "go-gin-starter/pkg/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,16 +15,16 @@ func JWTAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized)
+			httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrUnauthorized)
 			c.Abort()
 			return
 		}
 
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
-		claims, err := utils.ParseJWT(tokenStr)
+		claims, err := authPkg.ParseJWT(tokenStr)
 		if err != nil {
-			utils.RespondError(c, http.StatusUnauthorized, utils.ErrInvalidToken)
+			httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrInvalidToken)
 			c.Abort()
 			return
 		}

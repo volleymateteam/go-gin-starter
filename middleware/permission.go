@@ -1,8 +1,10 @@
 package middleware
 
 import (
+	authPkg "go-gin-starter/pkg/auth"
+	"go-gin-starter/pkg/constants"
+	httpPkg "go-gin-starter/pkg/http"
 	"go-gin-starter/services"
-	"go-gin-starter/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -13,27 +15,27 @@ func RequirePermission(permission string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userIDInterface, exists := c.Get("user_id")
 		if !exists {
-			utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized)
+			httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrUnauthorized)
 			c.Abort()
 			return
 		}
 
 		userID, ok := userIDInterface.(uuid.UUID)
 		if !ok {
-			utils.RespondError(c, http.StatusInternalServerError, utils.ErrInvalidUserID)
+			httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInvalidUserID)
 			c.Abort()
 			return
 		}
 
 		user, err := services.GetUserByID(userID)
 		if err != nil {
-			utils.RespondError(c, http.StatusUnauthorized, utils.ErrUnauthorized)
+			httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrUnauthorized)
 			c.Abort()
 			return
 		}
 
-		if !utils.HasPermission(user, permission) {
-			utils.RespondError(c, http.StatusForbidden, utils.ErrForbidden)
+		if !authPkg.HasPermission(user, permission) {
+			httpPkg.RespondError(c, http.StatusForbidden, constants.ErrForbidden)
 			c.Abort()
 			return
 		}

@@ -3,8 +3,9 @@ package controllers
 import (
 	"go-gin-starter/dto"
 	"go-gin-starter/models"
+	"go-gin-starter/pkg/constants"
+	httpPkg "go-gin-starter/pkg/http"
 	"go-gin-starter/services"
-	"go-gin-starter/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -15,147 +16,147 @@ import (
 func CreateMatch(c *gin.Context) {
 	var input dto.CreateMatchInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidInput)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidInput)
 		return
 	}
 
 	// Validate round
 	if !models.IsValidRound(input.Round) {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidMatchRound)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidMatchRound)
 		return
 	}
 
 	match, err := services.CreateMatchService(&input)
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternalServer)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInternalServer)
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusCreated, match, utils.MsgMatchCreated)
+	httpPkg.RespondSuccess(c, http.StatusCreated, match, constants.MsgMatchCreated)
 }
 
 // GetAllMatches handles GET /api/admin/matches
 func GetAllMatches(c *gin.Context) {
 	matches, err := services.GetAllMatchesService()
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrDatabase)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrDatabase)
 		return
 	}
-	utils.RespondSuccess(c, http.StatusOK, matches, utils.MsgMatchesFetched)
+	httpPkg.RespondSuccess(c, http.StatusOK, matches, constants.MsgMatchesFetched)
 }
 
 // GetMatchByID handles GET /api/admin/matches/:id
 func GetMatchByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidUserID)
 		return
 	}
 
 	match, err := services.GetMatchByIDService(id)
 	if err != nil {
-		utils.RespondError(c, http.StatusNotFound, utils.ErrMatchNotFound)
+		httpPkg.RespondError(c, http.StatusNotFound, constants.ErrMatchNotFound)
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, match, utils.MsgMatchFetched)
+	httpPkg.RespondSuccess(c, http.StatusOK, match, constants.MsgMatchFetched)
 }
 
 // UpdateMatch handles PUT /api/admin/matches/:id
 func UpdateMatch(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidUserID)
 		return
 	}
 
 	var input dto.UpdateMatchInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidInput)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidInput)
 		return
 	}
 
 	match, err := services.UpdateMatchService(id, &input)
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternalServer)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInternalServer)
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, match, utils.MsgMatchUpdated)
+	httpPkg.RespondSuccess(c, http.StatusOK, match, constants.MsgMatchUpdated)
 }
 
 // DeleteMatch handles DELETE /api/admin/matches/:id
 func DeleteMatch(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidUserID)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidUserID)
 		return
 	}
 
 	if err := services.DeleteMatchService(id); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternalServer)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInternalServer)
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgMatchDeleted)
+	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgMatchDeleted)
 }
 
 // UploadMatchVideo handles PATCH /api/admin/matches/:id/upload-video
 func UploadMatchVideo(c *gin.Context) {
 	matchID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidMatchID)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidMatchID)
 		return
 	}
 
 	file, err := c.FormFile("video")
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrFileUploadRequired)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrFileUploadRequired)
 		return
 	}
 
 	src, err := file.Open()
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrUploadFailed)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrUploadFailed)
 		return
 	}
 	defer src.Close()
 
 	videoURL, err := services.UploadMatchVideoService(matchID, src, file)
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, gin.H{"video_url": videoURL}, utils.MsgVideoUploaded)
+	httpPkg.RespondSuccess(c, http.StatusOK, gin.H{"video_url": videoURL}, constants.MsgVideoUploaded)
 }
 
 // UploadScoutFile handles PATCH /api/admin/matches/:id/upload-scout-file
 func UploadMatchScout(c *gin.Context) {
 	matchID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidMatchID)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidMatchID)
 		return
 	}
 
 	file, err := c.FormFile("scout_file")
 	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrFileUploadRequired)
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrFileUploadRequired)
 		return
 	}
 
 	src, err := file.Open()
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrUploadFailed)
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrUploadFailed)
 		return
 	}
 	defer src.Close()
 
 	jsonURL, err := services.UploadMatchScoutService(matchID, src, file)
 	if err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, err.Error())
+		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	utils.RespondSuccess(c, http.StatusOK, gin.H{"scout_url": jsonURL}, utils.MsgScoutUploaded)
+	httpPkg.RespondSuccess(c, http.StatusOK, gin.H{"scout_url": jsonURL}, constants.MsgScoutUploaded)
 }

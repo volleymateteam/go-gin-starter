@@ -1,7 +1,8 @@
-package utils
+package http
 
 import (
 	"go-gin-starter/dto"
+	auth "go-gin-starter/pkg/auth"
 	"go-gin-starter/models"
 
 	"github.com/gin-gonic/gin"
@@ -34,7 +35,7 @@ func BuildUserPermissionsResponse(user *models.User) gin.H {
 		"role":              user.Role,
 		"role_permissions":  rolePerms,
 		"extra_permissions": user.ExtraPermissions,
-		"all_permissions":   GetAllPermissions(user),
+		"all_permissions":   auth.GetAllPermissions(user),
 	}
 }
 
@@ -51,7 +52,7 @@ func BuildUserResetPermissionsResponse(user *models.User, emptyPermissions []str
 		"role":              user.Role,
 		"role_permissions":  rolePerms,
 		"extra_permissions": []string{},
-		"all_permissions":   GetAllPermissions(user),
+		"all_permissions":   auth.GetAllPermissions(user),
 	}
 }
 

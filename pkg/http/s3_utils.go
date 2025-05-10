@@ -1,4 +1,4 @@
-package utils
+package http
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"net/http"
 )
 
+// FetchJSONFromS3 retrieves a JSON file from an S3 URL and parses it into a map
 func FetchJSONFromS3(jsonURL string) (map[string]interface{}, error) {
 	resp, err := http.Get(jsonURL)
 	if err != nil {

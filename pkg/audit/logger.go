@@ -1,4 +1,4 @@
-package utils
+package audit
 
 import (
 	"go-gin-starter/dto"
