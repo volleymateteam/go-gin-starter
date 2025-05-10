@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"go-gin-starter/dto"
+	"go-gin-starter/models"
 	"go-gin-starter/services"
 	"go-gin-starter/utils"
 	"net/http"
-	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -25,15 +25,7 @@ func CreateTeam(c *gin.Context) {
 		return
 	}
 
-	response := dto.TeamResponse{
-		ID:        team.ID,
-		Name:      team.Name,
-		Country:   team.Country,
-		SeasonID:  team.SeasonID,
-		LogoURL:   "/uploads/logos/" + team.Logo,
-		CreatedAt: team.CreatedAt,
-		UpdatedAt: team.UpdatedAt,
-	}
+	response := utils.BuildTeamResponse(team)
 
 	utils.RespondSuccess(c, http.StatusCreated, response, utils.MsgTeamCreated)
 }
@@ -46,24 +38,7 @@ func GetAllTeams(c *gin.Context) {
 		return
 	}
 
-	var responses []dto.TeamResponse
-	for _, team := range teams {
-		logoPath := "/uploads/logos/defaults/default-team-logo.png"
-		if team.LogoURL != "" {
-			logoPath = "/uploads/logos/" + team.LogoURL
-		}
-		responses = append(responses, dto.TeamResponse{
-			ID:        team.ID,
-			Name:      team.Name,
-			Country:   team.Country,
-			SeasonID:  team.SeasonID,
-			LogoURL:   logoPath,
-			CreatedAt: team.CreatedAt,
-			UpdatedAt: team.UpdatedAt,
-		})
-	}
-
-	utils.RespondSuccess(c, http.StatusOK, responses, utils.MsgTeamsFetched)
+	utils.RespondSuccess(c, http.StatusOK, teams, utils.MsgTeamsFetched)
 }
 
 // GetTeamByID handles GET /api/admin/teams/:id
@@ -80,22 +55,7 @@ func GetTeamByID(c *gin.Context) {
 		return
 	}
 
-	logoPath := "/uploads/logos/defaults/default-team-logo.png"
-	if team.LogoURL != "" {
-		logoPath = "/uploads/logos/" + team.LogoURL
-	}
-
-	response := dto.TeamResponse{
-		ID:        team.ID,
-		Name:      team.Name,
-		Country:   team.Country,
-		SeasonID:  team.SeasonID,
-		LogoURL:   logoPath,
-		CreatedAt: team.CreatedAt,
-		UpdatedAt: team.UpdatedAt,
-	}
-
-	utils.RespondSuccess(c, http.StatusOK, response, utils.MsgTeamFetched)
+	utils.RespondSuccess(c, http.StatusOK, team, utils.MsgTeamFetched)
 }
 
 // UpdateTeam handles PUT /api/admin/teams/:id
@@ -118,17 +78,7 @@ func UpdateTeam(c *gin.Context) {
 		return
 	}
 
-	response := dto.TeamResponse{
-		ID:        team.ID,
-		Name:      team.Name,
-		Country:   team.Country,
-		SeasonID:  team.SeasonID,
-		LogoURL:   "/uploads/logos/" + team.LogoURL,
-		CreatedAt: team.CreatedAt,
-		UpdatedAt: team.UpdatedAt,
-	}
-
-	utils.RespondSuccess(c, http.StatusOK, response, utils.MsgTeamUpdated)
+	utils.RespondSuccess(c, http.StatusOK, team, utils.MsgTeamUpdated)
 }
 
 // DeleteTeam handles DELETE /api/admin/teams/:id
@@ -139,10 +89,23 @@ func DeleteTeam(c *gin.Context) {
 		return
 	}
 
+	// Fetch team info before deletion
+	team, _ := services.GetTeamByIDService(id)
+
 	if err := services.DeleteTeamService(id); err != nil {
 		utils.RespondError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
 	}
+
+	// Build metadata for audit log
+	metadata := models.JSONBMap{}
+	if team != nil {
+		metadata["team_name"] = team.Name
+	}
+
+	// Add audit logging
+	adminID := c.MustGet("user_id").(uuid.UUID)
+	_ = services.LogAdminAction(adminID, "delete_team", &id, nil, nil, nil, metadata)
 
 	utils.RespondSuccess(c, http.StatusOK, nil, utils.MsgTeamDeleted)
 }
@@ -162,29 +125,22 @@ func UploadTeamLogo(c *gin.Context) {
 		return
 	}
 
-	if file.Size > 2*1024*1024 {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrLogoTooLarge)
+	// delegate everything to service
+	newFileName, savePath, err := services.UploadAndSaveTeamLogoService(teamID, file)
+	if err != nil {
+		utils.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	ext := filepath.Ext(file.Filename)
-	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
-		utils.RespondError(c, http.StatusBadRequest, utils.ErrInvalidFileType)
-		return
-	}
-
-	newFileName := uuid.New().String() + ext
-	savePath := filepath.Join("uploads/logos", newFileName)
 
 	if err := c.SaveUploadedFile(file, savePath); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrUploadFailed)
+		utils.RespondError(c, http.StatusInternalServerError, utils.ErrFileSaveFailed)
 		return
 	}
 
-	if err := services.UpdateTeamLogoService(teamID, newFileName); err != nil {
-		utils.RespondError(c, http.StatusInternalServerError, utils.ErrUploadFailed)
-		return
-	}
+	// audit log
+	adminID := c.MustGet("user_id").(uuid.UUID)
+	metadata := models.JSONBMap{"filename": newFileName}
+	_ = services.LogAdminAction(adminID, "upload_team_logo", &teamID, nil, nil, nil, metadata)
 
 	utils.RespondSuccess(c, http.StatusOK, gin.H{
 		"logo_url": "/uploads/logos/" + newFileName,

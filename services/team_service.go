@@ -6,6 +6,8 @@ import (
 	"go-gin-starter/models"
 	"go-gin-starter/repositories"
 	"go-gin-starter/utils"
+	"mime/multipart"
+	"path/filepath"
 
 	"github.com/google/uuid"
 )
@@ -95,6 +97,29 @@ func UpdateTeamLogoService(id uuid.UUID, logoFilename string) error {
 	team.Logo = logoFilename
 
 	return repositories.UpdateTeam(team)
+}
+
+// UploadAndSaveTeamLogoService handles validation + saving + DB update
+func UploadAndSaveTeamLogoService(teamID uuid.UUID, file *multipart.FileHeader) (string, string, error) {
+	if err := utils.ValidateImageFile(file); err != nil {
+		return "", "", err
+	}
+
+	ext := filepath.Ext(file.Filename)
+	newFileName := utils.GenerateTeamLogoFileName(ext)
+	savePath := utils.BuildTeamLogoPath(newFileName)
+
+	team, err := repositories.GetTeamByID(teamID)
+	if err != nil {
+		return "", "", errors.New(utils.ErrTeamNotFound)
+	}
+
+	team.Logo = newFileName
+	if err := repositories.UpdateTeam(team); err != nil {
+		return "", "", err
+	}
+
+	return newFileName, savePath, nil
 }
 
 func mapTeamToResponse(team *models.Team) dto.TeamResponse {

@@ -54,3 +54,21 @@ func BuildUserResetPermissionsResponse(user *models.User, emptyPermissions []str
 		"all_permissions":   GetAllPermissions(user),
 	}
 }
+
+// BuildTeamResponse builds TeamResponse DTO from Team model
+func BuildTeamResponse(team *models.Team) dto.TeamResponse {
+	logoPath := "/uploads/logos/defaults/default-team-logo.png"
+	if team.Logo != "" {
+		logoPath = "/uploads/logos/" + team.Logo
+	}
+
+	return dto.TeamResponse{
+		ID:        team.ID,
+		Name:      team.Name,
+		Country:   team.Country,
+		SeasonID:  team.SeasonID,
+		LogoURL:   logoPath,
+		CreatedAt: team.CreatedAt,
+		UpdatedAt: team.UpdatedAt,
+	}
+}

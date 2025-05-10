@@ -17,6 +17,7 @@ const (
 	ErrInvalidInput          = "invalid input"
 	ErrAvatarTooLarge        = "avatar file is too large. Max size is 2MB"
 	ErrInvalidFileType       = "only .jpg, .jpeg, and .png formats are allowed"
+	ErrFileSaveFailed        = "failed to save file"
 	ErrUploadFailed          = "failed to upload file"
 	ErrDatabase              = "database error"
 	ErrPasswordMismatch      = "invalid old password"
