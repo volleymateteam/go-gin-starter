@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"go-gin-starter/dto"
-	"go-gin-starter/services"
+	authPkg "go-gin-starter/pkg/auth"
 	"go-gin-starter/pkg/constants"
 	httpPkg "go-gin-starter/pkg/http"
-	authPkg "go-gin-starter/pkg/auth"
+	"go-gin-starter/services"
 	"net/http"
 	"path/filepath"
 	"strconv"

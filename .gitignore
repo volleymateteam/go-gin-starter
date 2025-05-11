@@ -55,3 +55,6 @@ go-gin-starter
 volleymate-backend
 vendor/
 docs_deployment
+
+# SQL dump files
+*.sql
