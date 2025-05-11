@@ -97,3 +97,69 @@ sudo systemctl start scout-parser.service
 ```bash
 curl http://127.0.0.1:8001/health
 ```
+
+---
+
+## 🎥 S3 Video Access Configuration (CORS & Bucket Policy)
+
+This section documents how to configure AWS S3 and CORS to allow secure video access from the Volleymate mobile app.
+
+### 1. Bucket Policy for CloudFront and App Access
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowCloudFrontServicePrincipal",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "cloudfront.amazonaws.com"
+      },
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::volleymate-storage/*",
+      "Condition": {
+        "StringEquals": {
+          "AWS:SourceArn": "arn:aws:cloudfront::863518411349:distribution/E2I1LDQ5PKDKHX"
+        }
+      }
+    },
+    {
+      "Sid": "AllowAppAccess",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::volleymate-storage/*",
+      "Condition": {
+        "StringLike": {
+          "aws:Referer": [
+            "http://localhost:8081",
+            "capacitor://localhost",
+            "http://localhost",
+            "http://localhost:3000"
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+### 2. CORS Configuration
+
+```json
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedOrigins": [
+      "http://localhost:8081",
+      "capacitor://localhost",
+      "http://localhost",
+      "http://localhost:3000"
+    ],
+    "ExposeHeaders": [],
+    "MaxAgeSeconds": 3000
+  }
+]
+```
