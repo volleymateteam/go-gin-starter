@@ -1,14 +1,25 @@
 package config
 
 import (
+	"log"
 	"os"
 
 	"github.com/joho/godotenv"
 )
 
-// LoadEnv loads environment variables from .env file
 func LoadEnv() {
-	godotenv.Load(".env")
+	env := os.Getenv("ENV")
+	envFile := ".env"
+
+	if env == "dev" {
+		envFile = ".env.dev"
+	} else if env == "prod" {
+		envFile = ".env.prod"
+	}
+
+	if err := godotenv.Load(envFile); err != nil {
+		log.Fatalf("❌ Error loading %s file", envFile)
+	}
 }
 
 // GetEnvWithDefault returns the value of the environment variable or a default value if not set
