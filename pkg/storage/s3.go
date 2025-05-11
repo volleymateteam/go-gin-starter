@@ -36,5 +36,6 @@ func UploadMatchVideoToS3(uploader *s3manager.Uploader, file multipart.File, fil
 		return "", err
 	}
 
-	return key, nil
+	publicURL := fmt.Sprintf("https://%s/%s", config.VideoCloudFrontDomain, key)
+	return publicURL, nil
 }

@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"fmt"
+	"go-gin-starter/config"
 	"io"
 	"mime/multipart"
 	"os"
@@ -50,8 +51,7 @@ func UploadFileToS3(file multipart.File, objectKey string, contentType string) (
 		return "", err
 	}
 
-	// publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", awsBucket, awsRegion, objectKey)
-	publicURL := fmt.Sprintf("https://%s/%s", os.Getenv("CLOUDFRONT_DOMAIN"), objectKey)
+	publicURL := fmt.Sprintf("https://%s/%s", config.ScoutCloudFrontDomain, objectKey)
 
 	return publicURL, nil
 }
