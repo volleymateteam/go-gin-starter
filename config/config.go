@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 )
 
@@ -18,6 +19,8 @@ func InitConfig() {
 	AWSBucketName = os.Getenv("AWS_BUCKET_NAME")
 	ScoutCloudFrontDomain = os.Getenv("SCOUT_CLOUDFRONT_DOMAIN")
 	VideoCloudFrontDomain = os.Getenv("VIDEO_CLOUDFRONT_DOMAIN")
+
+	fmt.Println("DEBUG: Using VIDEO_CLOUDFRONT_DOMAIN =", VideoCloudFrontDomain)
 }
 
 var PythonParserURL = os.Getenv("PYTHON_SCOUT_PARSER_URL")

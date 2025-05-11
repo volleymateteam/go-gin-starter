@@ -22,7 +22,8 @@ func UploadMatchVideoToS3(uploader *s3manager.Uploader, file multipart.File, fil
 	safeCompetition := strings.ReplaceAll(strings.ToLower(competition), " ", "_")
 	safeCountry := strings.ToLower(country)
 	safeGender := strings.ToLower(gender)
-	safeSeason := strings.ReplaceAll(seasonYear, "/", "-") // e.g., 2024-2025
+	// safeSeason := strings.ReplaceAll(seasonYear, "/", "-") // e.g., 2024-2025
+	safeSeason := strings.ReplaceAll(seasonYear, "/", "_")
 
 	key := fmt.Sprintf("videos/%s_%s/%s_%s/%s%s", safeSeason, safeCountry, safeCompetition, safeGender, matchID, ext)
 

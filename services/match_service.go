@@ -240,23 +240,48 @@ func UploadMatchVideoService(matchID uuid.UUID, file multipart.File, fileHeader 
 	}
 	uploader := s3manager.NewUploader(sess)
 
-	// Upload and get S3 key
-	s3Key, err := storagePkg.UploadMatchVideoToS3(
-		uploader,
-		file,
-		fileHeader,
-		match.ID.String(),
-		season.SeasonYear,
-		string(season.Country),
-		string(season.Name),
-		string(season.Gender),
-	)
+	// Get file extension
+	ext := filepath.Ext(fileHeader.Filename)
+	if ext != ".mp4" && ext != ".mov" && ext != ".mkv" {
+		return "", fmt.Errorf("unsupported file type: %s", ext)
+	}
+
+	// Create the S3 key/path
+	safeCompetition := strings.ReplaceAll(strings.ToLower(string(season.Name)), " ", "_")
+	safeCountry := strings.ToLower(string(season.Country))
+	safeGender := strings.ToLower(string(season.Gender))
+	safeSeason := strings.ReplaceAll(season.SeasonYear, "/", "-") // e.g., 2024-2025
+
+	s3Key := fmt.Sprintf("videos/%s_%s/%s_%s/%s%s",
+		safeSeason, safeCountry, safeCompetition, safeGender, match.ID.String(), ext)
+
+	// Upload directly to S3
+	_, err = uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(config.AWSBucketName),
+		Key:    aws.String(s3Key),
+		Body:   file,
+	})
 	if err != nil {
 		return "", err
 	}
 
-	// Generate public S3 URL manually
-	videoURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", config.AWSBucketName, config.AWSRegion, s3Key)
+	// Create CloudFront URL directly using environment variable
+	cloudFrontDomain := os.Getenv("VIDEO_CLOUDFRONT_DOMAIN")
+	if cloudFrontDomain == "" {
+		log.Printf("WARNING: VIDEO_CLOUDFRONT_DOMAIN is empty, using default S3 URL")
+		videoURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s",
+			config.AWSBucketName, config.AWSRegion, s3Key)
+
+		// Save to DB
+		match.VideoURL = videoURL
+		if err := repositories.UpdateMatch(match); err != nil {
+			return "", err
+		}
+		return videoURL, nil
+	}
+
+	// Use CloudFront URL
+	videoURL := fmt.Sprintf("https://%s/%s", cloudFrontDomain, s3Key)
 
 	// Save to DB
 	match.VideoURL = videoURL
