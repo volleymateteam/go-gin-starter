@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"fmt"
 	"go-gin-starter/dto"
 	authPkg "go-gin-starter/pkg/auth"
 	"go-gin-starter/pkg/constants"
 	httpPkg "go-gin-starter/pkg/http"
+	"go-gin-starter/pkg/storage"
 	"go-gin-starter/services"
 	"net/http"
 	"path/filepath"
@@ -39,7 +41,7 @@ func GetProfile(c *gin.Context) {
 		Username:  user.Username,
 		Email:     user.Email,
 		Gender:    string(user.Gender),
-		AvatarURL: "/uploads/avatars/" + user.Avatar,
+		AvatarURL: user.Avatar,
 		Role:      string(user.Role),
 		CreatedAt: user.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
@@ -173,39 +175,49 @@ func UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	file, err := c.FormFile("avatar")
+	fileHeader, err := c.FormFile("avatar")
 	if err != nil {
 		httpPkg.RespondError(c, http.StatusBadRequest, "Avatar file is required")
 		return
 	}
 
 	const maxAvatarSize = 2 * 1024 * 1024
-	if file.Size > maxAvatarSize {
+	if fileHeader.Size > maxAvatarSize {
 		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrAvatarTooLarge)
 		return
 	}
 
-	ext := filepath.Ext(file.Filename)
+	ext := filepath.Ext(fileHeader.Filename)
 	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
 		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidFileType)
 		return
 	}
 
-	newFileName := uuid.New().String() + ext
-	savePath := filepath.Join("uploads/avatars", newFileName)
+	src, err := fileHeader.Open()
+	if err != nil {
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrUploadFailed)
+		return
+	}
+	defer src.Close()
 
-	if err := c.SaveUploadedFile(file, savePath); err != nil {
+	newFileName := uuid.New().String() + ext
+	objectKey := fmt.Sprintf("avatars/%s", newFileName)
+
+	contentType := fileHeader.Header.Get("Content-Type")
+
+	avatarURL, err := storage.UploadFileToS3(src, objectKey, contentType)
+	if err != nil {
 		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrUploadFailed)
 		return
 	}
 
-	user.Avatar = newFileName
+	user.Avatar = avatarURL
 	if err := services.UpdateUser(user); err != nil {
 		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	httpPkg.RespondSuccess(c, http.StatusOK, gin.H{"avatar_url": "/uploads/avatars/" + newFileName}, constants.MsgAvatarUploaded)
+	httpPkg.RespondSuccess(c, http.StatusOK, gin.H{"avatar_url": avatarURL}, constants.MsgAvatarUploaded)
 }
 
 func GetAllUsers(c *gin.Context) {
@@ -228,7 +240,7 @@ func GetAllUsers(c *gin.Context) {
 			Username:  user.Username,
 			Email:     user.Email,
 			Gender:    string(user.Gender),
-			AvatarURL: "/uploads/avatars/" + user.Avatar,
+			AvatarURL: user.Avatar,
 			Role:      string(user.Role),
 			CreatedAt: user.CreatedAt.Format(time.RFC3339),
 			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),

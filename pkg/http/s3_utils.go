@@ -9,6 +9,8 @@ import (
 
 // FetchJSONFromS3 retrieves a JSON file from an S3 URL and parses it into a map
 func FetchJSONFromS3(jsonURL string) (map[string]interface{}, error) {
+	fmt.Println("Fetching JSON from S3 URL:", jsonURL)
+
 	resp, err := http.Get(jsonURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch JSON: %w", err)
