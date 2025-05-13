@@ -57,3 +57,24 @@ func UploadMatchVideoToS3(
 	publicURL := fmt.Sprintf("https://%s/%s", config.VideoCloudFrontDomain, key)
 	return publicURL, nil
 }
+
+// UploadUserAvatar uploads user avatar image to S3 and returns the public URL
+func UploadUserAvatar(uploader *s3manager.Uploader, file multipart.File, fileHeader *multipart.FileHeader, userID string) (string, error) {
+	ext := filepath.Ext(fileHeader.Filename)
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
+		return "", fmt.Errorf("unsupported file type: %s", ext)
+	}
+
+	key := fmt.Sprintf("avatars/%s%s", userID, ext)
+
+	_, err := uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(config.AWSBucketName),
+		Key:    aws.String(key),
+		Body:   file,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("https://%s/%s", config.AssetCloudFrontDomain, key), nil
+}

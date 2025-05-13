@@ -11,6 +11,7 @@ var (
 	AWSBucketName         string
 	ScoutCloudFrontDomain string
 	VideoCloudFrontDomain string
+	AssetCloudFrontDomain string
 )
 
 // InitConfig initializes all config values after LoadEnv is called
@@ -19,6 +20,7 @@ func InitConfig() {
 	AWSBucketName = os.Getenv("AWS_BUCKET_NAME")
 	ScoutCloudFrontDomain = os.Getenv("SCOUT_CLOUDFRONT_DOMAIN")
 	VideoCloudFrontDomain = os.Getenv("VIDEO_CLOUDFRONT_DOMAIN")
+	AssetCloudFrontDomain = os.Getenv("ASSET_CLOUDFRONT_DOMAIN")
 
 	fmt.Println("DEBUG: Using VIDEO_CLOUDFRONT_DOMAIN =", VideoCloudFrontDomain)
 }
