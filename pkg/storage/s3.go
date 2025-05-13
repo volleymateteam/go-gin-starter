@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"mime"
 	"mime/multipart"
 	"path/filepath"
 	"strings"
@@ -13,7 +14,16 @@ import (
 )
 
 // UploadMatchVideoToS3 uploads a video to S3 in the correct folder structure
-func UploadMatchVideoToS3(uploader *s3manager.Uploader, file multipart.File, fileHeader *multipart.FileHeader, matchID string, seasonYear string, country string, competition string, gender string) (string, error) {
+func UploadMatchVideoToS3(
+	uploader *s3manager.Uploader,
+	file multipart.File,
+	fileHeader *multipart.FileHeader,
+	matchID string,
+	seasonYear string,
+	country string,
+	competition string,
+	gender string,
+) (string, error) {
 	ext := filepath.Ext(fileHeader.Filename)
 	if ext != ".mp4" && ext != ".mov" && ext != ".mkv" {
 		return "", fmt.Errorf("unsupported file type: %s", ext)
@@ -27,10 +37,17 @@ func UploadMatchVideoToS3(uploader *s3manager.Uploader, file multipart.File, fil
 
 	key := fmt.Sprintf("videos/%s_%s/%s_%s/%s%s", safeSeason, safeCountry, safeCompetition, safeGender, matchID, ext)
 
+	// Detect MIME type
+	mimeType := mime.TypeByExtension(ext)
+	if mimeType == "" {
+		mimeType = "binary/octet-stream" // fallback
+	}
+
 	_, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(config.AWSBucketName),
-		Key:    aws.String(key),
-		Body:   file,
+		Bucket:      aws.String(config.AWSBucketName),
+		Key:         aws.String(key),
+		Body:        file,
+		ContentType: aws.String(mimeType),
 		// ACL:    aws.String("public-read"),
 	})
 	if err != nil {
