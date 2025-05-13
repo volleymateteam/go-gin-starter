@@ -52,7 +52,7 @@ func UploadFileToS3(file multipart.File, objectKey string, contentType string) (
 	}
 
 	var cloudFront string
-	if strings.Contains(objectKey, "avatars") || strings.Contains(objectKey, "logos") {
+	if strings.Contains(objectKey, "avatars") || strings.Contains(objectKey, "logos") || strings.Contains(objectKey, "profile") {
 		cloudFront = config.AssetCloudFrontDomain
 	} else {
 		cloudFront = config.ScoutCloudFrontDomain
