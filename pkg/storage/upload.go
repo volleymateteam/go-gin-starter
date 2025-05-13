@@ -7,6 +7,7 @@ import (
 	"io"
 	"mime/multipart"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -45,14 +46,19 @@ func UploadFileToS3(file multipart.File, objectKey string, contentType string) (
 		Key:         aws.String(objectKey),
 		Body:        bytes.NewReader(buf.Bytes()),
 		ContentType: aws.String(contentType),
-		// ACL:         aws.String("public-read"), // optional, makes it publicly accessible
 	})
 	if err != nil {
 		return "", err
 	}
 
-	publicURL := fmt.Sprintf("https://%s/%s", config.ScoutCloudFrontDomain, objectKey)
+	var cloudFront string
+	if strings.Contains(objectKey, "avatars") || strings.Contains(objectKey, "logos") {
+		cloudFront = config.AssetCloudFrontDomain
+	} else {
+		cloudFront = config.ScoutCloudFrontDomain
+	}
 
+	publicURL := fmt.Sprintf("https://%s/%s", cloudFront, objectKey)
 	return publicURL, nil
 }
 
