@@ -2,6 +2,8 @@ package main
 
 import (
 	"go-gin-starter/config"
+        "log"
+        "os"
 	"go-gin-starter/controllers"
 	"go-gin-starter/database"
 	"go-gin-starter/middleware"
@@ -21,6 +23,12 @@ func main() {
 	// Load environment variables and connect to the database
 	config.LoadEnv()
 	config.InitConfig()
+
+	log.Printf("DEBUG: ENV=%s, VIDEO_CLOUDFRONT_DOMAIN='%s'", 
+		 os.Getenv("ENV"), 
+	         os.Getenv("VIDEO_CLOUDFRONT_DOMAIN"))
+
+      
 
 	// Initialize structured logger
 	logger.Init()
