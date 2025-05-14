@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"time"
@@ -17,7 +19,7 @@ type Claims struct {
 }
 
 func GenerateJWT(userID uuid.UUID) (string, error) {
-	expirationTime := time.Now().Add(24 * time.Hour)
+	expirationTime := time.Now().Add(15 * time.Minute)
 
 	claims := &Claims{
 		UserID: userID,
@@ -42,4 +44,13 @@ func ParseJWT(tokenStr string) (*Claims, error) {
 	}
 
 	return claims, nil
+}
+
+func GenerateSecureToken(n int) (string, error) {
+	bytes := make([]byte, n)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }

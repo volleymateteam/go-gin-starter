@@ -37,7 +37,7 @@ func Register(c *gin.Context) {
 		Username:  user.Username,
 		Email:     user.Email,
 		Gender:    string(user.Gender),
-		AvatarURL: "/uploads/avatars/" + user.Avatar,
+		AvatarURL: "/uploads/avatars/" + user.Avatar, // have to be FIXED
 		Role:      string(user.Role),
 		CreatedAt: user.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
@@ -58,13 +58,70 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	token, err := authPkg.GenerateJWT(user.ID)
+	accessToken, err := authPkg.GenerateJWT(user.ID)
 	if err != nil {
 		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrTokenGenerationFailed)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	refreshToken, err := authPkg.GenerateSecureToken(32)
+	if err != nil {
+		httpPkg.RespondError(c, http.StatusInternalServerError, "failed to generate refresh token")
+		return
+	}
+	refreshExpiry := time.Now().Add(7 * 24 * time.Hour)
+
+	err = services.UpdateRefreshToken(user.ID, refreshToken, refreshExpiry)
+	if err != nil {
+		httpPkg.RespondError(c, http.StatusInternalServerError, "failed to save refresh token")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	})
+}
+
+func RefreshToken(c *gin.Context) {
+	var input struct {
+		RefreshToken string `json:"refresh_token" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidToken)
+		return
+	}
+
+	user, err := services.GetUserByRefreshToken(input.RefreshToken)
+	if err != nil || user.RefreshTokenExpiry.Before(time.Now()) {
+		httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrInvalidToken)
+		return
+	}
+
+	// Generate new access token
+	accessToken, err := authPkg.GenerateJWT(user.ID)
+	if err != nil {
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrTokenGenerationFailed)
+		return
+	}
+
+	// (Optional) rotate refresh token
+	newRefreshToken, err := authPkg.GenerateSecureToken(32)
+	if err != nil {
+		httpPkg.RespondError(c, http.StatusInternalServerError, "failed to generate refresh token")
+		return
+	}
+	newExpiry := time.Now().Add(7 * 24 * time.Hour)
+
+	if err := services.UpdateRefreshToken(user.ID, newRefreshToken, newExpiry); err != nil {
+		httpPkg.RespondError(c, http.StatusInternalServerError, "failed to update refresh token")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"access_token":  accessToken,
+		"refresh_token": newRefreshToken,
+	})
 }
 
 func ForgotPassword(c *gin.Context) {

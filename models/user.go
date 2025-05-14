@@ -49,7 +49,11 @@ type User struct {
 	ExtraPermissions     StringArray `gorm:"type:jsonb;default:null" json:"extra_permissions"`
 	ResetPasswordToken   *string     `gorm:"type:text"`
 	ResetPasswordExpires *time.Time  `gorm:"type:timestamp"`
-	CreatedAt            time.Time
-	UpdatedAt            time.Time
-	DeletedAt            gorm.DeletedAt `gorm:"index"`
+
+	RefreshToken       *string    `gorm:"type:text"`
+	RefreshTokenExpiry *time.Time `gorm:"type:timestamp"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
