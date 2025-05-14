@@ -4,13 +4,16 @@ import (
 	"go-gin-starter/dto"
 	"go-gin-starter/pkg/constants"
 	httpPkg "go-gin-starter/pkg/http"
+	"go-gin-starter/pkg/logger"
 	"go-gin-starter/pkg/storage"
 	"go-gin-starter/services"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 // CreateSeason handler for creating a new season
@@ -98,6 +101,10 @@ func DeleteSeason(c *gin.Context) {
 
 // UploadSeasonLogo handler for uploading a season logo
 func UploadSeasonLogo(c *gin.Context) {
+	// Set maximum request size to prevent memory issues
+	maxSize := int64(5 * 1024 * 1024) // 5MB limit
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSize)
+
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidUserID)
@@ -106,6 +113,10 @@ func UploadSeasonLogo(c *gin.Context) {
 
 	fileHeader, err := c.FormFile("logo")
 	if err != nil {
+		if strings.Contains(err.Error(), "http: request body too large") {
+			httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrLogoTooLarge)
+			return
+		}
 		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrFileUploadRequired)
 		return
 	}
@@ -123,6 +134,7 @@ func UploadSeasonLogo(c *gin.Context) {
 
 	src, err := fileHeader.Open()
 	if err != nil {
+		logger.Error("Failed to open uploaded file", zap.Error(err))
 		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrUploadFailed)
 		return
 	}
@@ -132,13 +144,27 @@ func UploadSeasonLogo(c *gin.Context) {
 	key := filepath.Join("logos/seasons", newFileName)
 	contentType := fileHeader.Header.Get("Content-Type")
 
+	// If content type is missing, try to infer it
+	if contentType == "" {
+		switch ext {
+		case ".jpg", ".jpeg":
+			contentType = "image/jpeg"
+		case ".png":
+			contentType = "image/png"
+		default:
+			contentType = "application/octet-stream"
+		}
+	}
+
 	logoURL, err := storage.UploadFileToS3(src, key, contentType)
 	if err != nil {
+		logger.Error("S3 upload failed", zap.Error(err), zap.String("key", key))
 		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrUploadFailed)
 		return
 	}
 
 	if err := services.UpdateSeasonLogoService(id, logoURL); err != nil {
+		logger.Error("Failed to update season logo in database", zap.Error(err), zap.String("seasonID", id.String()))
 		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInternalServer)
 		return
 	}

@@ -1,15 +1,21 @@
 package controllers
 
 import (
+	"fmt"
 	"go-gin-starter/dto"
 	"go-gin-starter/models"
 	"go-gin-starter/pkg/constants"
 	httpPkg "go-gin-starter/pkg/http"
+	"go-gin-starter/pkg/logger"
+	"go-gin-starter/pkg/storage"
 	"go-gin-starter/services"
 	"net/http"
+	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 // CreateTeam handles POST /api/admin/teams
@@ -113,37 +119,75 @@ func DeleteTeam(c *gin.Context) {
 
 // UploadTeamLogo handles PATCH /api/admin/teams/:id/upload-logo
 func UploadTeamLogo(c *gin.Context) {
-	idParam := c.Param("id")
-	teamID, err := uuid.Parse(idParam)
+	// Set maximum request size to prevent memory issues
+	maxSize := int64(5 * 1024 * 1024) // 5MB limit
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSize)
+
+	teamID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidUserID)
 		return
 	}
 
-	file, err := c.FormFile("logo")
+	fileHeader, err := c.FormFile("logo")
 	if err != nil {
+		if strings.Contains(err.Error(), "http: request body too large") {
+			httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrLogoTooLarge)
+			return
+		}
 		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrFileUploadRequired)
 		return
 	}
 
-	// delegate everything to service
-	newFileName, savePath, err := services.UploadAndSaveTeamLogoService(teamID, file)
+	if fileHeader.Size > 2*1024*1024 {
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrLogoTooLarge)
+		return
+	}
+
+	ext := filepath.Ext(fileHeader.Filename)
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
+		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidFileType)
+		return
+	}
+
+	src, err := fileHeader.Open()
 	if err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
+		logger.Error("Failed to open uploaded file", zap.Error(err))
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrUploadFailed)
+		return
+	}
+	defer src.Close()
+
+	objectKey := fmt.Sprintf("logos/teams/%s%s", uuid.New().String(), ext)
+	contentType := fileHeader.Header.Get("Content-Type")
+
+	// If content type is missing, try to infer it
+	if contentType == "" {
+		switch ext {
+		case ".jpg", ".jpeg":
+			contentType = "image/jpeg"
+		case ".png":
+			contentType = "image/png"
+		default:
+			contentType = "application/octet-stream"
+		}
+	}
+
+	logoURL, err := storage.UploadFileToS3(src, objectKey, contentType)
+	if err != nil {
+		logger.Error("S3 upload failed", zap.Error(err), zap.String("objectKey", objectKey))
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrUploadFailed)
 		return
 	}
 
-	if err := c.SaveUploadedFile(file, savePath); err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrFileSaveFailed)
+	// Update only the filename in DB
+	if err := services.UpdateTeamLogoService(teamID, filepath.Base(objectKey)); err != nil {
+		logger.Error("Failed to update team logo in database", zap.Error(err), zap.String("teamID", teamID.String()))
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrDatabase)
 		return
 	}
-
-	// audit log
-	adminID := c.MustGet("user_id").(uuid.UUID)
-	metadata := models.JSONBMap{"filename": newFileName}
-	_ = services.LogAdminAction(adminID, "upload_team_logo", &teamID, nil, nil, nil, metadata)
 
 	httpPkg.RespondSuccess(c, http.StatusOK, gin.H{
-		"logo_url": "/uploads/logos/" + newFileName,
+		"logo_url": logoURL,
 	}, constants.MsgLogoUploaded)
 }
