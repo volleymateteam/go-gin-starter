@@ -14,10 +14,11 @@ To document the setup and usage of AWS CloudFront with our S3 buckets for return
 | ------------ | --------------------------------------- | ---------------- |
 | Scout Files  | `https://d1b5o37qbj029k.cloudfront.net` | `E2I1LDQ5PKDKHX` |
 | Match Videos | `https://d2qk7473q3y7pg.cloudfront.net` | `E1WV6L56OFBZ8E` |
+| Assets       | `https://d3assetdomain.cloudfront.net`  | `ExxxxxxxxxxxX`  |
 
 ---
 
-## 🔐 S3 Bucket Policy
+## �� S3 Bucket Policy
 
 Bucket: `volleymate-storage`
 
@@ -64,9 +65,25 @@ Bucket: `volleymate-storage`
 ```env
 SCOUT_CLOUDFRONT_DOMAIN=d1b5o37qbj029k.cloudfront.net
 VIDEO_CLOUDFRONT_DOMAIN=d2qk7473q3y7pg.cloudfront.net
+ASSET_CLOUDFRONT_DOMAIN=d3assetdomain.cloudfront.net
 ```
 
 These are parsed in `config.InitConfig()` and injected into the video and scout file upload services.
+
+### Asset Domain Usage
+
+The `ASSET_CLOUDFRONT_DOMAIN` is used specifically for:
+
+- Team/Club/Player logos
+- Season logos
+- User avatars
+- Other static assets
+
+Example implementation in `services/season_service.go`:
+
+```go
+LogoURL: fmt.Sprintf("https://%s/logos/seasons/%s", config.AssetCloudFrontDomain, season.Logo)
+```
 
 ---
 

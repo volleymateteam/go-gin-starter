@@ -53,6 +53,32 @@ curl http://localhost:8000/health
 
 ---
 
+## Deployment Workflow (Updates)
+
+### 1. Update from Git
+
+```bash
+cd ~/volleymate-backend-go
+git checkout main
+git pull origin main
+```
+
+### 2. Set Environment and Build
+
+```bash
+export ENV=prod
+source .env.prod
+go build -o volleymate-backend main.go
+```
+
+### 3. Restart Service
+
+```bash
+sudo systemctl restart volleymate-backend.service
+```
+
+---
+
 ## Python Microservice (Parser)
 
 ### 1. Virtualenv
