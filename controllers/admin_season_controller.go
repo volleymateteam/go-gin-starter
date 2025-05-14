@@ -2,9 +2,10 @@ package controllers
 
 import (
 	"go-gin-starter/dto"
-	"go-gin-starter/services"
 	"go-gin-starter/pkg/constants"
 	httpPkg "go-gin-starter/pkg/http"
+	"go-gin-starter/pkg/storage"
+	"go-gin-starter/services"
 	"net/http"
 	"path/filepath"
 
@@ -103,38 +104,46 @@ func UploadSeasonLogo(c *gin.Context) {
 		return
 	}
 
-	file, err := c.FormFile("logo")
+	fileHeader, err := c.FormFile("logo")
 	if err != nil {
 		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrFileUploadRequired)
 		return
 	}
 
-	if file.Size > 2*1024*1024 {
+	if fileHeader.Size > 2*1024*1024 {
 		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrLogoTooLarge)
 		return
 	}
 
-	ext := filepath.Ext(file.Filename)
+	ext := filepath.Ext(fileHeader.Filename)
 	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
 		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidFileType)
 		return
 	}
 
-	newFileName := uuid.New().String() + ext
-	savePath := filepath.Join("uploads/logos/seasons", newFileName)
+	src, err := fileHeader.Open()
+	if err != nil {
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrUploadFailed)
+		return
+	}
+	defer src.Close()
 
-	if err := c.SaveUploadedFile(file, savePath); err != nil {
+	newFileName := uuid.New().String() + ext
+	key := filepath.Join("logos/seasons", newFileName)
+	contentType := fileHeader.Header.Get("Content-Type")
+
+	logoURL, err := storage.UploadFileToS3(src, key, contentType)
+	if err != nil {
 		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrUploadFailed)
 		return
 	}
 
-	// Update in DB
-	if err := services.UpdateSeasonLogoService(id, newFileName); err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrDatabase)
+	if err := services.UpdateSeasonLogoService(id, logoURL); err != nil {
+		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInternalServer)
 		return
 	}
 
 	httpPkg.RespondSuccess(c, http.StatusOK, gin.H{
-		"logo_url": "/uploads/logos/seasons/" + newFileName,
+		"logo_url": logoURL,
 	}, constants.MsgLogoUploaded)
 }

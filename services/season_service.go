@@ -2,10 +2,12 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	"go-gin-starter/config"
 	"go-gin-starter/dto"
 	"go-gin-starter/models"
-	"go-gin-starter/repositories"
 	"go-gin-starter/pkg/constants"
+	"go-gin-starter/repositories"
 
 	"github.com/google/uuid"
 )
@@ -18,7 +20,6 @@ func CreateSeasonService(input *dto.CreateSeasonInput) (*dto.SeasonResponse, err
 		Gender:     input.Gender,
 		SeasonType: input.SeasonType,
 		SeasonYear: input.SeasonYear,
-		Round:      input.Round,
 		StartDate:  input.StartDate,
 		EndDate:    input.EndDate,
 		Logo:       "defaults/default-season-logo.png",
@@ -37,7 +38,6 @@ func CreateSeasonService(input *dto.CreateSeasonInput) (*dto.SeasonResponse, err
 		SeasonYear: season.SeasonYear,
 		StartDate:  season.StartDate,
 		EndDate:    season.EndDate,
-		Round:      season.Round,
 		LogoURL:    "/uploads/logos/" + season.Logo,
 		CreatedAt:  season.CreatedAt,
 		UpdatedAt:  season.UpdatedAt,
@@ -63,10 +63,11 @@ func GetAllSeasonsService() ([]dto.SeasonResponse, error) {
 			SeasonYear: season.SeasonYear,
 			StartDate:  season.StartDate,
 			EndDate:    season.EndDate,
-			Round:      season.Round,
-			LogoURL:    "/uploads/logos/" + season.Logo,
-			CreatedAt:  season.CreatedAt,
-			UpdatedAt:  season.UpdatedAt,
+			// LogoURL:    "/uploads/logos/" + season.Logo,
+			LogoURL: fmt.Sprintf("https://%s/logos/seasons/%s", config.AssetCloudFrontDomain, season.Logo),
+
+			CreatedAt: season.CreatedAt,
+			UpdatedAt: season.UpdatedAt,
 		})
 	}
 	return responses, nil
@@ -88,10 +89,11 @@ func GetSeasonByIDService(id uuid.UUID) (*dto.SeasonResponse, error) {
 		SeasonYear: season.SeasonYear,
 		StartDate:  season.StartDate,
 		EndDate:    season.EndDate,
-		Round:      season.Round,
-		LogoURL:    "/uploads/logos/" + season.Logo,
-		CreatedAt:  season.CreatedAt,
-		UpdatedAt:  season.UpdatedAt,
+		// LogoURL:    "/uploads/logos/" + season.Logo,
+		LogoURL: fmt.Sprintf("https://%s/logos/seasons/%s", config.AssetCloudFrontDomain, season.Logo),
+
+		CreatedAt: season.CreatedAt,
+		UpdatedAt: season.UpdatedAt,
 	}
 	return &response, nil
 }
@@ -141,10 +143,11 @@ func UpdateSeasonService(id uuid.UUID, input *dto.UpdateSeasonInput) (*dto.Seaso
 		SeasonYear: season.SeasonYear,
 		StartDate:  season.StartDate,
 		EndDate:    season.EndDate,
-		Round:      season.Round,
-		LogoURL:    "/uploads/logos/" + season.Logo,
-		CreatedAt:  season.CreatedAt,
-		UpdatedAt:  season.UpdatedAt,
+		//		LogoURL:    "/uploads/logos/" + season.Logo,
+		LogoURL: fmt.Sprintf("https://%s/logos/seasons/%s", config.AssetCloudFrontDomain, season.Logo),
+
+		CreatedAt: season.CreatedAt,
+		UpdatedAt: season.UpdatedAt,
 	}
 	return &response, nil
 }
