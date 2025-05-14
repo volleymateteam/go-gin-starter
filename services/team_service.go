@@ -2,12 +2,14 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	"go-gin-starter/config"
 	"go-gin-starter/dto"
 	"go-gin-starter/models"
-	"go-gin-starter/repositories"
+	"go-gin-starter/pkg/constants"
 	storagePkg "go-gin-starter/pkg/storage"
 	validationPkg "go-gin-starter/pkg/validation"
-	"go-gin-starter/pkg/constants"
+	"go-gin-starter/repositories"
 	"mime/multipart"
 	"path/filepath"
 
@@ -135,7 +137,7 @@ func mapTeamToResponse(team *models.Team) dto.TeamResponse {
 		Name:      team.Name,
 		Country:   team.Country,
 		SeasonID:  team.SeasonID,
-		LogoURL:   "/uploads/logos/" + logo,
+		LogoURL:   fmt.Sprintf("https://%s/logos/teams/%s", config.AssetCloudFrontDomain, logo),
 		CreatedAt: team.CreatedAt,
 		UpdatedAt: team.UpdatedAt,
 	}
