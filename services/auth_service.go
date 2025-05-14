@@ -7,6 +7,8 @@ import (
 	"go-gin-starter/database"
 	"go-gin-starter/models"
 	authPkg "go-gin-starter/pkg/auth"
+
+	"github.com/google/uuid"
 )
 
 // GetUserByEmail finds a user by their email (used for login and forgot password)
@@ -52,5 +54,23 @@ func ResetUserPassword(token, newPassword string) error {
 	user.ResetPasswordToken = nil
 	user.ResetPasswordExpires = nil
 
+	return database.DB.Save(&user).Error
+}
+
+func GetUserByRefreshToken(token string) (*models.User, error) {
+	var user models.User
+	if err := database.DB.Where("refresh_token = ?", token).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func UpdateRefreshToken(userID uuid.UUID, token string, expiry time.Time) error {
+	var user models.User
+	if err := database.DB.Where("id = ?", userID).First(&user).Error; err != nil {
+		return err
+	}
+	user.RefreshToken = &token
+	user.RefreshTokenExpiry = &expiry
 	return database.DB.Save(&user).Error
 }

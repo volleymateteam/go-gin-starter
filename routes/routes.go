@@ -12,6 +12,7 @@ func SetupRoutes(router gin.IRouter) {
 	// Public Routes (No authentication)
 	router.POST("/register", controllers.Register)
 	router.POST("/login", controllers.Login)
+	router.POST("/refresh-token", controllers.RefreshToken)
 	router.POST("/password/forgot", controllers.ForgotPassword)
 	router.POST("/password/reset", controllers.ResetPassword)
 	router.POST("/waitlist/submit", controllers.SubmitWaitlist)
