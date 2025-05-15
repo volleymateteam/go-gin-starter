@@ -16,6 +16,7 @@ func SetupRoutes(router gin.IRouter) {
 	adminUserCtrl := container.AdminUserController
 	waitlistCtrl := container.WaitlistController
 	authCtrl := container.AuthController
+	teamCtrl := container.TeamController
 
 	// Public Routes (No authentication)
 	router.POST("/register", authCtrl.Register)
@@ -56,12 +57,12 @@ func SetupRoutes(router gin.IRouter) {
 		admin.DELETE("/waitlist/:id/reject", middleware.RequirePermission("manage_waitlist"), waitlistCtrl.RejectWaitlistEntry)
 
 		// Admin Team Management
-		admin.POST("/teams", middleware.RequirePermission("manage_teams"), controllers.CreateTeam)
-		admin.GET("/teams", middleware.RequirePermission("manage_teams"), controllers.GetAllTeams)
-		admin.GET("/teams/:id", middleware.RequirePermission("manage_teams"), controllers.GetTeamByID)
-		admin.PUT("/teams/:id", middleware.RequirePermission("manage_teams"), controllers.UpdateTeam)
-		admin.DELETE("/teams/:id", middleware.RequirePermission("manage_teams"), controllers.DeleteTeam)
-		admin.PATCH("/teams/:id/upload-logo", middleware.RequirePermission("manage_teams"), controllers.UploadTeamLogo)
+		admin.POST("/teams", middleware.RequirePermission("manage_teams"), teamCtrl.CreateTeam)
+		admin.GET("/teams", middleware.RequirePermission("manage_teams"), teamCtrl.GetAllTeams)
+		admin.GET("/teams/:id", middleware.RequirePermission("manage_teams"), teamCtrl.GetTeamByID)
+		admin.PUT("/teams/:id", middleware.RequirePermission("manage_teams"), teamCtrl.UpdateTeam)
+		admin.DELETE("/teams/:id", middleware.RequirePermission("manage_teams"), teamCtrl.DeleteTeam)
+		admin.PATCH("/teams/:id/upload-logo", middleware.RequirePermission("manage_teams"), teamCtrl.UploadTeamLogo)
 
 		// Admin Season Management
 		admin.POST("/seasons", middleware.RequirePermission("manage_season"), controllers.CreateSeason)

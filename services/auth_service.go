@@ -168,8 +168,8 @@ func (s *AuthServiceImpl) ForgotPassword(email string) (string, error) {
 		return "", errors.New(constants.ErrResetTokenFailed)
 	}
 
-	// Set token expiry (15 minutes)
-	expiry := time.Now().Add(15 * time.Minute)
+	// Set token expiry (12 hours)
+	expiry := time.Now().Add(12 * time.Hour)
 
 	// Update user with reset token
 	if err := s.authRepo.UpdateResetToken(email, resetToken, expiry); err != nil {

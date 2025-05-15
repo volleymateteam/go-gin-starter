@@ -12,6 +12,7 @@ type Container struct {
 	AdminUserController *controllers.AdminUserController
 	WaitlistController  *controllers.WaitlistController
 	AuthController      *controllers.AuthController
+	TeamController      *controllers.TeamController
 	// Add other controllers here as needed
 }
 
@@ -21,23 +22,29 @@ func NewContainer() *Container {
 	userRepo := repositories.NewUserRepository()
 	waitlistRepo := repositories.NewWaitlistRepository()
 	authRepo := repositories.NewAuthRepository()
+	teamRepo := repositories.NewTeamRepository()
+
+	// Add other repositories here as needed
 
 	// Initialize services
 	userService := services.NewUserService(userRepo)
 	waitlistService := services.NewWaitlistService(waitlistRepo, userService)
 	authService := services.NewAuthService(authRepo, userRepo)
+	teamService := services.NewTeamService(teamRepo)
 
 	// Initialize controllers
 	userController := controllers.NewUserController(userService)
 	adminUserController := controllers.NewAdminUserController(userService)
 	waitlistController := controllers.NewWaitlistController(waitlistService)
 	authController := controllers.NewAuthController(authService)
+	teamController := controllers.NewTeamController(teamService)
 
 	return &Container{
 		UserController:      userController,
 		AdminUserController: adminUserController,
 		WaitlistController:  waitlistController,
 		AuthController:      authController,
+		TeamController:      teamController,
 		// Add other controllers here as needed
 	}
 }
