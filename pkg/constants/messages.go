@@ -47,6 +47,7 @@ const (
 	ErrDatabaseConnection    = "database connection error"
 	ErrRateLimitExceeded     = "rate limit exceeded"
 	ErrInvalidID             = "invalid ID"
+	ErrPasswordHashFailed    = "failed to hash password"
 )
 
 // Success messages

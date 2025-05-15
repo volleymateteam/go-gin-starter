@@ -10,18 +10,19 @@ import (
 
 // SetupRoutes registers all routes on the given router group
 func SetupRoutes(router gin.IRouter) {
-	// Create the container and get the user controller
+	// Create the container and get the controllers
 	container := di.NewContainer()
 	userCtrl := container.UserController
 	adminUserCtrl := container.AdminUserController
 	waitlistCtrl := container.WaitlistController
+	authCtrl := container.AuthController
 
 	// Public Routes (No authentication)
-	router.POST("/register", controllers.Register)
-	router.POST("/login", controllers.Login)
-	router.POST("/refresh-token", controllers.RefreshToken)
-	router.POST("/password/forgot", controllers.ForgotPassword)
-	router.POST("/password/reset", controllers.ResetPassword)
+	router.POST("/register", authCtrl.Register)
+	router.POST("/login", authCtrl.Login)
+	router.POST("/refresh-token", authCtrl.RefreshToken)
+	router.POST("/password/forgot", authCtrl.ForgotPassword)
+	router.POST("/password/reset", authCtrl.ResetPassword)
 	router.POST("/waitlist/submit", waitlistCtrl.SubmitWaitlist)
 
 	// Authenticated Routes (JWT required)
