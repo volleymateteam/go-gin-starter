@@ -2,14 +2,14 @@ package main
 
 import (
 	"go-gin-starter/config"
-        "log"
-        "os"
 	"go-gin-starter/controllers"
 	"go-gin-starter/database"
 	"go-gin-starter/middleware"
 	"go-gin-starter/models"
 	"go-gin-starter/pkg/logger"
 	"go-gin-starter/routes"
+	"log"
+	"os"
 
 	_ "go-gin-starter/docs" // swagger docs
 
@@ -24,11 +24,9 @@ func main() {
 	config.LoadEnv()
 	config.InitConfig()
 
-	log.Printf("DEBUG: ENV=%s, VIDEO_CLOUDFRONT_DOMAIN='%s'", 
-		 os.Getenv("ENV"), 
-	         os.Getenv("VIDEO_CLOUDFRONT_DOMAIN"))
-
-      
+	log.Printf("DEBUG: ENV=%s, VIDEO_CLOUDFRONT_DOMAIN='%s'",
+		os.Getenv("ENV"),
+		os.Getenv("VIDEO_CLOUDFRONT_DOMAIN"))
 
 	// Initialize structured logger
 	logger.Init()

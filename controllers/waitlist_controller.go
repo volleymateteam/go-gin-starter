@@ -8,21 +8,83 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
-// SubmitWaitlist handles POST /api/waitlist/submit
-func SubmitWaitlist(c *gin.Context) {
+// WaitlistController handles waitlist-related HTTP requests
+type WaitlistController struct {
+	waitlistService services.WaitlistService
+}
+
+// NewWaitlistController creates a new instance of WaitlistController
+func NewWaitlistController(waitlistService services.WaitlistService) *WaitlistController {
+	return &WaitlistController{
+		waitlistService: waitlistService,
+	}
+}
+
+// SubmitWaitlist handles waitlist submission
+func (c *WaitlistController) SubmitWaitlist(ctx *gin.Context) {
 	var input dto.CreateWaitlistEntryInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidInput)
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		httpPkg.RespondError(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	err := services.SubmitWaitlistEntry(input.Email, input.Source)
+	err := c.waitlistService.SubmitWaitlistEntry(input.Email, input.Source)
 	if err != nil {
-		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
+		if err.Error() == constants.ErrAlreadyInWaitlist {
+			httpPkg.RespondError(ctx, http.StatusConflict, constants.ErrAlreadyInWaitlist)
+			return
+		}
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	httpPkg.RespondSuccess(c, http.StatusCreated, nil, constants.MsgWaitlistSubmitted)
+	httpPkg.RespondSuccess(ctx, http.StatusOK, nil, constants.MsgWaitlistSuccess)
+}
+
+// GetAllWaitlist returns all waitlist entries
+func (c *WaitlistController) GetAllWaitlist(ctx *gin.Context) {
+	entries, err := c.waitlistService.GetAllWaitlistEntries()
+	if err != nil {
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	httpPkg.RespondSuccess(ctx, http.StatusOK, entries, constants.MsgWaitlistFetched)
+}
+
+// ApproveWaitlistEntry approves a waitlist entry
+func (c *WaitlistController) ApproveWaitlistEntry(ctx *gin.Context) {
+	id := ctx.Param("id")
+	entryID, err := uuid.Parse(id)
+	if err != nil {
+		httpPkg.RespondError(ctx, http.StatusBadRequest, constants.ErrInvalidID)
+		return
+	}
+
+	if err := c.waitlistService.ApproveWaitlistEntry(entryID); err != nil {
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	httpPkg.RespondSuccess(ctx, http.StatusOK, nil, constants.MsgWaitlistApproved)
+}
+
+// RejectWaitlistEntry rejects a waitlist entry
+func (c *WaitlistController) RejectWaitlistEntry(ctx *gin.Context) {
+	id := ctx.Param("id")
+	entryID, err := uuid.Parse(id)
+	if err != nil {
+		httpPkg.RespondError(ctx, http.StatusBadRequest, constants.ErrInvalidID)
+		return
+	}
+
+	if err := c.waitlistService.RejectWaitlistEntry(entryID); err != nil {
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	httpPkg.RespondSuccess(ctx, http.StatusOK, nil, constants.MsgWaitlistRejected)
 }

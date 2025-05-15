@@ -14,6 +14,7 @@ func SetupRoutes(router gin.IRouter) {
 	container := di.NewContainer()
 	userCtrl := container.UserController
 	adminUserCtrl := container.AdminUserController
+	waitlistCtrl := container.WaitlistController
 
 	// Public Routes (No authentication)
 	router.POST("/register", controllers.Register)
@@ -21,7 +22,7 @@ func SetupRoutes(router gin.IRouter) {
 	router.POST("/refresh-token", controllers.RefreshToken)
 	router.POST("/password/forgot", controllers.ForgotPassword)
 	router.POST("/password/reset", controllers.ResetPassword)
-	router.POST("/waitlist/submit", controllers.SubmitWaitlist)
+	router.POST("/waitlist/submit", waitlistCtrl.SubmitWaitlist)
 
 	// Authenticated Routes (JWT required)
 	auth := router.Group("/")
@@ -49,9 +50,9 @@ func SetupRoutes(router gin.IRouter) {
 		admin.GET("/audit-logs", middleware.RequirePermission("view_audit_logs"), adminUserCtrl.GetAuditLogs)
 
 		// Admin Waitlist Management
-		admin.GET("/waitlist", middleware.RequirePermission("manage_waitlist"), controllers.GetAllWaitlist)
-		admin.POST("/waitlist/:id/approve", middleware.RequirePermission("manage_waitlist"), controllers.ApproveWaitlistEntry)
-		admin.DELETE("/waitlist/:id/reject", middleware.RequirePermission("manage_waitlist"), controllers.RejectWaitlistEntry)
+		admin.GET("/waitlist", middleware.RequirePermission("manage_waitlist"), waitlistCtrl.GetAllWaitlist)
+		admin.POST("/waitlist/:id/approve", middleware.RequirePermission("manage_waitlist"), waitlistCtrl.ApproveWaitlistEntry)
+		admin.DELETE("/waitlist/:id/reject", middleware.RequirePermission("manage_waitlist"), waitlistCtrl.RejectWaitlistEntry)
 
 		// Admin Team Management
 		admin.POST("/teams", middleware.RequirePermission("manage_teams"), controllers.CreateTeam)

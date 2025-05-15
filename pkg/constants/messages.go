@@ -46,6 +46,7 @@ const (
 	ErrRefreshTokenExpired   = "refresh token has expired"
 	ErrDatabaseConnection    = "database connection error"
 	ErrRateLimitExceeded     = "rate limit exceeded"
+	ErrInvalidID             = "invalid ID"
 )
 
 // Success messages
@@ -96,4 +97,6 @@ const (
 	MsgUserPermissionsFetched = "user permissions fetched successfully"
 	MsgUserPermissionsReset   = "user permissions reset to role defaults"
 	MsgAuditLogsFetched       = "audit logs fetched successfully"
+	MsgWaitlistEntryRejected  = "waitlist entry rejected successfully"
+	MsgWaitlistSuccess        = "waitlist entry successfully processed"
 )
