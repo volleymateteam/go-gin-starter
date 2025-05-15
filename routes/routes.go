@@ -3,12 +3,18 @@ package routes
 import (
 	"go-gin-starter/controllers"
 	"go-gin-starter/middleware"
+	"go-gin-starter/pkg/di"
 
 	"github.com/gin-gonic/gin"
 )
 
 // SetupRoutes registers all routes on the given router group
 func SetupRoutes(router gin.IRouter) {
+	// Create the container and get the user controller
+	container := di.NewContainer()
+	userCtrl := container.UserController
+	adminUserCtrl := container.AdminUserController
+
 	// Public Routes (No authentication)
 	router.POST("/register", controllers.Register)
 	router.POST("/login", controllers.Login)
@@ -22,25 +28,25 @@ func SetupRoutes(router gin.IRouter) {
 	auth.Use(middleware.JWTAuth())
 
 	// Normal authenticated user routes
-	auth.GET("/profile", controllers.GetProfile)
-	auth.POST("/profile/upload-avatar", controllers.UploadAvatar)
-	auth.PUT("/profile", controllers.UpdateProfile)
-	auth.DELETE("/profile", controllers.DeleteProfile)
-	auth.PUT("/profile/change-password", controllers.ChangePassword)
+	auth.GET("/profile", userCtrl.GetProfile)
+	auth.POST("/profile/upload-avatar", userCtrl.UploadAvatar)
+	auth.PUT("/profile", userCtrl.UpdateProfile)
+	auth.DELETE("/profile", userCtrl.DeleteProfile)
+	auth.PUT("/profile/change-password", userCtrl.ChangePassword)
 
 	// Admin permission-based routes
 	admin := auth.Group("/admin")
 	{
 		// Admin User Management
-		admin.GET("/users", middleware.RequirePermission("manage_users"), controllers.GetAllUsers)
-		admin.PUT("/users/:id", middleware.RequirePermission("manage_users"), controllers.UpdateUserByAdmin)
-		admin.DELETE("/users/:id", middleware.RequirePermission("manage_users"), controllers.DeleteUserByAdmin)
-		admin.PATCH("/users/:id/permissions", middleware.RequirePermission("manage_users"), controllers.UpdateUserPermissions)
-		admin.GET("/users/:id/permissions", middleware.RequirePermission("manage_users"), controllers.GetUserPermissions)
-		admin.PATCH("/users/:id/permissions/reset", middleware.RequirePermission("manage_users"), controllers.ResetUserPermissions)
+		admin.GET("/users", middleware.RequirePermission("manage_users"), userCtrl.GetAllUsers)
+		admin.PUT("/users/:id", middleware.RequirePermission("manage_users"), adminUserCtrl.UpdateUserByAdmin)
+		admin.DELETE("/users/:id", middleware.RequirePermission("manage_users"), adminUserCtrl.DeleteUserByAdmin)
+		admin.PATCH("/users/:id/permissions", middleware.RequirePermission("manage_users"), adminUserCtrl.UpdateUserPermissions)
+		admin.GET("/users/:id/permissions", middleware.RequirePermission("manage_users"), adminUserCtrl.GetUserPermissions)
+		admin.PATCH("/users/:id/permissions/reset", middleware.RequirePermission("manage_users"), adminUserCtrl.ResetUserPermissions)
 
 		// Admin Audit Logging
-		admin.GET("/audit-logs", middleware.RequirePermission("view_audit_logs"), controllers.GetAuditLogs)
+		admin.GET("/audit-logs", middleware.RequirePermission("view_audit_logs"), adminUserCtrl.GetAuditLogs)
 
 		// Admin Waitlist Management
 		admin.GET("/waitlist", middleware.RequirePermission("manage_waitlist"), controllers.GetAllWaitlist)
@@ -77,7 +83,7 @@ func SetupRoutes(router gin.IRouter) {
 	user := auth.Group("/users")
 	user.Use(middleware.AdminOrSelf())
 	{
-		user.PUT("/:id/update", controllers.UpdateUserProfile)
-		user.DELETE("/:id/delete", controllers.DeleteUserAccount)
+		user.PUT("/:id/update", userCtrl.UpdateUserProfile)
+		user.DELETE("/:id/delete", userCtrl.DeleteUserAccount)
 	}
 }
