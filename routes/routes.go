@@ -13,11 +13,20 @@ func SetupRoutes(router gin.IRouter) {
 	container := di.NewContainer()
 	userCtrl := container.UserController
 	adminUserCtrl := container.AdminUserController
+	adminPermissionsCtrl := container.AdminUserPermissionsController
+	adminAuditCtrl := container.AdminAuditController
 	waitlistCtrl := container.WaitlistController
 	authCtrl := container.AuthController
 	teamCtrl := container.TeamController
 	matchCtrl := container.MatchController
 	seasonCtrl := container.SeasonController
+	healthCtrl := container.HealthController
+
+	// Health check routes
+	router.GET("/health", healthCtrl.HealthCheck)
+	router.GET("/health/detailed", healthCtrl.DetailedHealthCheck)
+	router.GET("/health/liveness", healthCtrl.LivenessCheck)
+	router.GET("/health/readiness", healthCtrl.ReadinessCheck)
 
 	// Public Routes (No authentication)
 	router.POST("/register", authCtrl.Register)
@@ -45,12 +54,14 @@ func SetupRoutes(router gin.IRouter) {
 		admin.GET("/users", middleware.RequirePermission("manage_users"), userCtrl.GetAllUsers)
 		admin.PUT("/users/:id", middleware.RequirePermission("manage_users"), adminUserCtrl.UpdateUserByAdmin)
 		admin.DELETE("/users/:id", middleware.RequirePermission("manage_users"), adminUserCtrl.DeleteUserByAdmin)
-		admin.PATCH("/users/:id/permissions", middleware.RequirePermission("manage_users"), adminUserCtrl.UpdateUserPermissions)
-		admin.GET("/users/:id/permissions", middleware.RequirePermission("manage_users"), adminUserCtrl.GetUserPermissions)
-		admin.PATCH("/users/:id/permissions/reset", middleware.RequirePermission("manage_users"), adminUserCtrl.ResetUserPermissions)
+
+		// Admin User Permissions Management
+		admin.PATCH("/users/:id/permissions", middleware.RequirePermission("manage_users"), adminPermissionsCtrl.UpdateUserPermissions)
+		admin.GET("/users/:id/permissions", middleware.RequirePermission("manage_users"), adminPermissionsCtrl.GetUserPermissions)
+		admin.PATCH("/users/:id/permissions/reset", middleware.RequirePermission("manage_users"), adminPermissionsCtrl.ResetUserPermissions)
 
 		// Admin Audit Logging
-		admin.GET("/audit-logs", middleware.RequirePermission("view_audit_logs"), adminUserCtrl.GetAuditLogs)
+		admin.GET("/audit-logs", middleware.RequirePermission("view_audit_logs"), adminAuditCtrl.GetAuditLogs)
 
 		// Admin Waitlist Management
 		admin.GET("/waitlist", middleware.RequirePermission("manage_waitlist"), waitlistCtrl.GetAllWaitlist)

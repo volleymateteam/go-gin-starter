@@ -8,13 +8,16 @@ import (
 
 // Container holds all the dependency instances
 type Container struct {
-	UserController      *controllers.UserController
-	AdminUserController *controllers.AdminUserController
-	WaitlistController  *controllers.WaitlistController
-	AuthController      *controllers.AuthController
-	TeamController      *controllers.TeamController
-	MatchController     *controllers.MatchController
-	SeasonController    *controllers.SeasonController
+	UserController                 *controllers.UserController
+	AdminUserController            *controllers.AdminUserController
+	AdminUserPermissionsController *controllers.AdminUserPermissionsController
+	AdminAuditController           *controllers.AdminAuditController
+	WaitlistController             *controllers.WaitlistController
+	AuthController                 *controllers.AuthController
+	TeamController                 *controllers.TeamController
+	MatchController                *controllers.MatchController
+	SeasonController               *controllers.SeasonController
+	HealthController               *controllers.HealthController
 	// Add other controllers here as needed
 }
 
@@ -41,20 +44,26 @@ func NewContainer() *Container {
 	// Initialize controllers
 	userController := controllers.NewUserController(userService)
 	adminUserController := controllers.NewAdminUserController(userService)
+	adminUserPermissionsController := controllers.NewAdminUserPermissionsController(userService)
+	adminAuditController := controllers.NewAdminAuditController()
 	waitlistController := controllers.NewWaitlistController(waitlistService)
 	authController := controllers.NewAuthController(authService)
 	teamController := controllers.NewTeamController(teamService)
 	matchController := controllers.NewMatchController(matchService)
 	seasonController := controllers.NewSeasonController(seasonService)
+	healthController := controllers.NewHealthController()
 
 	return &Container{
-		UserController:      userController,
-		AdminUserController: adminUserController,
-		WaitlistController:  waitlistController,
-		AuthController:      authController,
-		TeamController:      teamController,
-		MatchController:     matchController,
-		SeasonController:    seasonController,
+		UserController:                 userController,
+		AdminUserController:            adminUserController,
+		AdminUserPermissionsController: adminUserPermissionsController,
+		AdminAuditController:           adminAuditController,
+		WaitlistController:             waitlistController,
+		AuthController:                 authController,
+		TeamController:                 teamController,
+		MatchController:                matchController,
+		SeasonController:               seasonController,
+		HealthController:               healthController,
 		// Add other controllers here as needed
 	}
 }
