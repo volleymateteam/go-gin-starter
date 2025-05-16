@@ -8,12 +8,36 @@ import (
 	"go-gin-starter/models"
 	"go-gin-starter/pkg/constants"
 	"go-gin-starter/repositories"
+	"mime/multipart"
 
 	"github.com/google/uuid"
 )
 
-// CreateSeasonService creates a new season
-func CreateSeasonService(input *dto.CreateSeasonInput) (*dto.SeasonResponse, error) {
+// SeasonService defines the interface for season-related business logic
+type SeasonService interface {
+	CreateSeason(input *dto.CreateSeasonInput) (*dto.SeasonResponse, error)
+	GetAllSeasons() ([]dto.SeasonResponse, error)
+	GetSeasonByID(id uuid.UUID) (*dto.SeasonResponse, error)
+	UpdateSeason(id uuid.UUID, input *dto.UpdateSeasonInput) (*dto.SeasonResponse, error)
+	DeleteSeason(id uuid.UUID) error
+	UpdateSeasonLogo(seasonID uuid.UUID, logoFilename string) error
+	UploadAndSaveSeasonLogo(seasonID uuid.UUID, file *multipart.FileHeader) (string, error)
+}
+
+// SeasonServiceImpl implements SeasonService
+type SeasonServiceImpl struct {
+	seasonRepo repositories.SeasonRepository
+}
+
+// NewSeasonService creates a new instance of SeasonService
+func NewSeasonService(seasonRepo repositories.SeasonRepository) SeasonService {
+	return &SeasonServiceImpl{
+		seasonRepo: seasonRepo,
+	}
+}
+
+// CreateSeason creates a new season
+func (s *SeasonServiceImpl) CreateSeason(input *dto.CreateSeasonInput) (*dto.SeasonResponse, error) {
 	season := models.Season{
 		Name:       input.Name,
 		Country:    input.Country,
@@ -25,7 +49,7 @@ func CreateSeasonService(input *dto.CreateSeasonInput) (*dto.SeasonResponse, err
 		Logo:       "defaults/default-season-logo.png",
 	}
 
-	if err := repositories.CreateSeason(&season); err != nil {
+	if err := s.seasonRepo.Create(&season); err != nil {
 		return nil, err
 	}
 
@@ -38,16 +62,16 @@ func CreateSeasonService(input *dto.CreateSeasonInput) (*dto.SeasonResponse, err
 		SeasonYear: season.SeasonYear,
 		StartDate:  season.StartDate,
 		EndDate:    season.EndDate,
-		LogoURL:    "/uploads/logos/" + season.Logo,
+		LogoURL:    fmt.Sprintf("https://%s/logos/seasons/%s", config.AssetCloudFrontDomain, season.Logo),
 		CreatedAt:  season.CreatedAt,
 		UpdatedAt:  season.UpdatedAt,
 	}
 	return &response, nil
 }
 
-// GetAllSeasonsService returns all seasons
-func GetAllSeasonsService() ([]dto.SeasonResponse, error) {
-	seasons, err := repositories.GetAllSeasons()
+// GetAllSeasons returns all seasons
+func (s *SeasonServiceImpl) GetAllSeasons() ([]dto.SeasonResponse, error) {
+	seasons, err := s.seasonRepo.GetAll()
 	if err != nil {
 		return nil, err
 	}
@@ -63,19 +87,17 @@ func GetAllSeasonsService() ([]dto.SeasonResponse, error) {
 			SeasonYear: season.SeasonYear,
 			StartDate:  season.StartDate,
 			EndDate:    season.EndDate,
-			// LogoURL:    "/uploads/logos/" + season.Logo,
-			LogoURL: fmt.Sprintf("https://%s/logos/seasons/%s", config.AssetCloudFrontDomain, season.Logo),
-
-			CreatedAt: season.CreatedAt,
-			UpdatedAt: season.UpdatedAt,
+			LogoURL:    fmt.Sprintf("https://%s/logos/seasons/%s", config.AssetCloudFrontDomain, season.Logo),
+			CreatedAt:  season.CreatedAt,
+			UpdatedAt:  season.UpdatedAt,
 		})
 	}
 	return responses, nil
 }
 
-// GetSeasonByIDService returns a specific season by ID
-func GetSeasonByIDService(id uuid.UUID) (*dto.SeasonResponse, error) {
-	season, err := repositories.GetSeasonByID(id)
+// GetSeasonByID returns a specific season by ID
+func (s *SeasonServiceImpl) GetSeasonByID(id uuid.UUID) (*dto.SeasonResponse, error) {
+	season, err := s.seasonRepo.GetByID(id)
 	if err != nil {
 		return nil, errors.New(constants.ErrSeasonNotFound)
 	}
@@ -89,18 +111,16 @@ func GetSeasonByIDService(id uuid.UUID) (*dto.SeasonResponse, error) {
 		SeasonYear: season.SeasonYear,
 		StartDate:  season.StartDate,
 		EndDate:    season.EndDate,
-		// LogoURL:    "/uploads/logos/" + season.Logo,
-		LogoURL: fmt.Sprintf("https://%s/logos/seasons/%s", config.AssetCloudFrontDomain, season.Logo),
-
-		CreatedAt: season.CreatedAt,
-		UpdatedAt: season.UpdatedAt,
+		LogoURL:    fmt.Sprintf("https://%s/logos/seasons/%s", config.AssetCloudFrontDomain, season.Logo),
+		CreatedAt:  season.CreatedAt,
+		UpdatedAt:  season.UpdatedAt,
 	}
 	return &response, nil
 }
 
-// UpdateSeasonService updates an existing season
-func UpdateSeasonService(id uuid.UUID, input *dto.UpdateSeasonInput) (*dto.SeasonResponse, error) {
-	season, err := repositories.GetSeasonByID(id)
+// UpdateSeason updates an existing season
+func (s *SeasonServiceImpl) UpdateSeason(id uuid.UUID, input *dto.UpdateSeasonInput) (*dto.SeasonResponse, error) {
+	season, err := s.seasonRepo.GetByID(id)
 	if err != nil {
 		return nil, errors.New(constants.ErrSeasonNotFound)
 	}
@@ -130,7 +150,7 @@ func UpdateSeasonService(id uuid.UUID, input *dto.UpdateSeasonInput) (*dto.Seaso
 		season.EndDate = input.EndDate
 	}
 
-	if err := repositories.UpdateSeason(season); err != nil {
+	if err := s.seasonRepo.Update(season); err != nil {
 		return nil, err
 	}
 
@@ -143,27 +163,70 @@ func UpdateSeasonService(id uuid.UUID, input *dto.UpdateSeasonInput) (*dto.Seaso
 		SeasonYear: season.SeasonYear,
 		StartDate:  season.StartDate,
 		EndDate:    season.EndDate,
-		//		LogoURL:    "/uploads/logos/" + season.Logo,
-		LogoURL: fmt.Sprintf("https://%s/logos/seasons/%s", config.AssetCloudFrontDomain, season.Logo),
-
-		CreatedAt: season.CreatedAt,
-		UpdatedAt: season.UpdatedAt,
+		LogoURL:    fmt.Sprintf("https://%s/logos/seasons/%s", config.AssetCloudFrontDomain, season.Logo),
+		CreatedAt:  season.CreatedAt,
+		UpdatedAt:  season.UpdatedAt,
 	}
 	return &response, nil
 }
 
-// DeleteSeasonService removes a season
-func DeleteSeasonService(id uuid.UUID) error {
-	return repositories.DeleteSeason(id)
+// DeleteSeason removes a season
+func (s *SeasonServiceImpl) DeleteSeason(id uuid.UUID) error {
+	return s.seasonRepo.Delete(id)
 }
 
-// UpdateSeasonLogoService updates the logo of a season
-func UpdateSeasonLogoService(seasonID uuid.UUID, logoFilename string) error {
-	season, err := repositories.GetSeasonByID(seasonID)
+// UpdateSeasonLogo updates the logo of a season
+func (s *SeasonServiceImpl) UpdateSeasonLogo(seasonID uuid.UUID, logoFilename string) error {
+	season, err := s.seasonRepo.GetByID(seasonID)
 	if err != nil {
 		return errors.New(constants.ErrSeasonNotFound)
 	}
 
 	season.Logo = logoFilename
-	return repositories.UpdateSeason(season)
+	return s.seasonRepo.Update(season)
+}
+
+// UploadAndSaveSeasonLogo handles uploading and saving a season logo
+func (s *SeasonServiceImpl) UploadAndSaveSeasonLogo(seasonID uuid.UUID, file *multipart.FileHeader) (string, error) {
+	// Implementation will be added later
+	return "", nil
+}
+
+// Legacy functions for backward compatibility
+// These will be removed once migration is complete
+
+func CreateSeasonService(input *dto.CreateSeasonInput) (*dto.SeasonResponse, error) {
+	seasonRepo := repositories.NewSeasonRepository()
+	seasonService := NewSeasonService(seasonRepo)
+	return seasonService.CreateSeason(input)
+}
+
+func GetAllSeasonsService() ([]dto.SeasonResponse, error) {
+	seasonRepo := repositories.NewSeasonRepository()
+	seasonService := NewSeasonService(seasonRepo)
+	return seasonService.GetAllSeasons()
+}
+
+func GetSeasonByIDService(id uuid.UUID) (*dto.SeasonResponse, error) {
+	seasonRepo := repositories.NewSeasonRepository()
+	seasonService := NewSeasonService(seasonRepo)
+	return seasonService.GetSeasonByID(id)
+}
+
+func UpdateSeasonService(id uuid.UUID, input *dto.UpdateSeasonInput) (*dto.SeasonResponse, error) {
+	seasonRepo := repositories.NewSeasonRepository()
+	seasonService := NewSeasonService(seasonRepo)
+	return seasonService.UpdateSeason(id, input)
+}
+
+func DeleteSeasonService(id uuid.UUID) error {
+	seasonRepo := repositories.NewSeasonRepository()
+	seasonService := NewSeasonService(seasonRepo)
+	return seasonService.DeleteSeason(id)
+}
+
+func UpdateSeasonLogoService(seasonID uuid.UUID, logoFilename string) error {
+	seasonRepo := repositories.NewSeasonRepository()
+	seasonService := NewSeasonService(seasonRepo)
+	return seasonService.UpdateSeasonLogo(seasonID, logoFilename)
 }

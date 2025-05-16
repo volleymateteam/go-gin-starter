@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"go-gin-starter/controllers"
 	"go-gin-starter/middleware"
 	"go-gin-starter/pkg/di"
 
@@ -18,6 +17,7 @@ func SetupRoutes(router gin.IRouter) {
 	authCtrl := container.AuthController
 	teamCtrl := container.TeamController
 	matchCtrl := container.MatchController
+	seasonCtrl := container.SeasonController
 
 	// Public Routes (No authentication)
 	router.POST("/register", authCtrl.Register)
@@ -66,12 +66,12 @@ func SetupRoutes(router gin.IRouter) {
 		admin.PATCH("/teams/:id/upload-logo", middleware.RequirePermission("manage_teams"), teamCtrl.UploadTeamLogo)
 
 		// Admin Season Management
-		admin.POST("/seasons", middleware.RequirePermission("manage_season"), controllers.CreateSeason)
-		admin.GET("/seasons", middleware.RequirePermission("manage_season"), controllers.GetAllSeasons)
-		admin.GET("/seasons/:id", middleware.RequirePermission("manage_season"), controllers.GetSeasonByID)
-		admin.PUT("/seasons/:id", middleware.RequirePermission("manage_season"), controllers.UpdateSeason)
-		admin.DELETE("/seasons/:id", middleware.RequirePermission("manage_season"), controllers.DeleteSeason)
-		admin.PATCH("/seasons/:id/upload-logo", middleware.RequirePermission("manage_season"), controllers.UploadSeasonLogo)
+		admin.POST("/seasons", middleware.RequirePermission("manage_season"), seasonCtrl.CreateSeason)
+		admin.GET("/seasons", middleware.RequirePermission("manage_season"), seasonCtrl.GetAllSeasons)
+		admin.GET("/seasons/:id", middleware.RequirePermission("manage_season"), seasonCtrl.GetSeasonByID)
+		admin.PUT("/seasons/:id", middleware.RequirePermission("manage_season"), seasonCtrl.UpdateSeason)
+		admin.DELETE("/seasons/:id", middleware.RequirePermission("manage_season"), seasonCtrl.DeleteSeason)
+		admin.PATCH("/seasons/:id/upload-logo", middleware.RequirePermission("manage_season"), seasonCtrl.UploadSeasonLogo)
 
 		// Admin Match Management
 		admin.POST("/matches", middleware.RequirePermission("manage_matches"), matchCtrl.CreateMatch)

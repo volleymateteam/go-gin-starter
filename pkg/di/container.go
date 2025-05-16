@@ -14,6 +14,7 @@ type Container struct {
 	AuthController      *controllers.AuthController
 	TeamController      *controllers.TeamController
 	MatchController     *controllers.MatchController
+	SeasonController    *controllers.SeasonController
 	// Add other controllers here as needed
 }
 
@@ -35,6 +36,7 @@ func NewContainer() *Container {
 	authService := services.NewAuthService(authRepo, userRepo)
 	teamService := services.NewTeamService(teamRepo)
 	matchService := services.NewMatchService(matchRepo, teamRepo, seasonRepo)
+	seasonService := services.NewSeasonService(seasonRepo)
 
 	// Initialize controllers
 	userController := controllers.NewUserController(userService)
@@ -43,6 +45,7 @@ func NewContainer() *Container {
 	authController := controllers.NewAuthController(authService)
 	teamController := controllers.NewTeamController(teamService)
 	matchController := controllers.NewMatchController(matchService)
+	seasonController := controllers.NewSeasonController(seasonService)
 
 	return &Container{
 		UserController:      userController,
@@ -51,6 +54,7 @@ func NewContainer() *Container {
 		AuthController:      authController,
 		TeamController:      teamController,
 		MatchController:     matchController,
+		SeasonController:    seasonController,
 		// Add other controllers here as needed
 	}
 }
