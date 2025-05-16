@@ -175,8 +175,11 @@ func (s *UserServiceImpl) GetUserProfile(userID uuid.UUID) (*dto.UserResponse, e
 		avatarURL = fmt.Sprintf("https://%s/avatars/%s", config.AssetCloudFrontDomain, user.Avatar)
 	}
 
+	// Get all permissions (combines role permissions with extra permissions)
+	allPermissions := authPkg.GetAllPermissions(user)
+
 	// Convert StringArray to []string for the DTO
-	var extraPermissions []string
+	extraPermissions := []string{} // Initialize as empty array instead of nil/null
 	if user.ExtraPermissions != nil {
 		extraPermissions = []string(user.ExtraPermissions)
 	}
@@ -188,6 +191,7 @@ func (s *UserServiceImpl) GetUserProfile(userID uuid.UUID) (*dto.UserResponse, e
 		Gender:           string(user.Gender),
 		AvatarURL:        avatarURL,
 		Role:             string(user.Role),
+		Permissions:      allPermissions,
 		ExtraPermissions: extraPermissions,
 		CreatedAt:        user.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:        user.UpdatedAt.Format(time.RFC3339),
