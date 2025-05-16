@@ -47,6 +47,18 @@ func SetupRoutes(router gin.IRouter) {
 	auth.DELETE("/profile", userCtrl.DeleteProfile)
 	auth.PUT("/profile/change-password", userCtrl.ChangePassword)
 
+	// Public read-only season routes (available to all authenticated users)
+	auth.GET("/seasons", seasonCtrl.GetAllSeasons)
+	auth.GET("/seasons/:id", seasonCtrl.GetSeasonByID)
+
+	// Public read-only team routes (available to all authenticated users)
+	auth.GET("/teams", teamCtrl.GetAllTeams)
+	auth.GET("/teams/:id", teamCtrl.GetTeamByID)
+
+	// Public read-only match routes (available to all authenticated users)
+	auth.GET("/matches", matchCtrl.GetAllMatches)
+	auth.GET("/matches/:id", matchCtrl.GetMatchByID)
+
 	// Admin permission-based routes
 	admin := auth.Group("/admin")
 	{

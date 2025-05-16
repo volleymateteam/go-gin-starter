@@ -62,3 +62,7 @@ docs_deployment
 
 # Backup files
 *.backup
+
+
+# Postman collection files
+Volleymate_go.postman_collection.json

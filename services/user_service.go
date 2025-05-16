@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"go-gin-starter/config"
 	"go-gin-starter/dto"
 	"go-gin-starter/models"
 	authPkg "go-gin-starter/pkg/auth"
@@ -11,6 +12,7 @@ import (
 	"go-gin-starter/repositories"
 	"mime/multipart"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -164,15 +166,31 @@ func (s *UserServiceImpl) GetUserProfile(userID uuid.UUID) (*dto.UserResponse, e
 		return nil, err
 	}
 
+	var avatarURL string
+	if strings.HasPrefix(user.Avatar, "https://") {
+		// Already a complete URL
+		avatarURL = user.Avatar
+	} else {
+		// Default avatar or partial path, add CloudFront domain
+		avatarURL = fmt.Sprintf("https://%s/%s", config.AssetCloudFrontDomain, user.Avatar)
+	}
+
+	// Convert StringArray to []string for the DTO
+	var extraPermissions []string
+	if user.ExtraPermissions != nil {
+		extraPermissions = []string(user.ExtraPermissions)
+	}
+
 	return &dto.UserResponse{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		Gender:    string(user.Gender),
-		AvatarURL: user.Avatar,
-		Role:      string(user.Role),
-		CreatedAt: user.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+		ID:               user.ID,
+		Username:         user.Username,
+		Email:            user.Email,
+		Gender:           string(user.Gender),
+		AvatarURL:        avatarURL,
+		Role:             string(user.Role),
+		ExtraPermissions: extraPermissions,
+		CreatedAt:        user.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:        user.UpdatedAt.Format(time.RFC3339),
 	}, nil
 }
 

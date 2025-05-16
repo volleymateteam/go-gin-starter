@@ -9,6 +9,7 @@ type UserResponse struct {
 	Gender           string    `json:"gender"`
 	AvatarURL        string    `json:"avatar_url"`
 	Role             string    `json:"role"`
+	Permissions      []string  `json:"permissions"`
 	ExtraPermissions []string  `json:"extra_permissions"`
 	CreatedAt        string    `json:"created_at"`
 	UpdatedAt        string    `json:"updated_at"`
