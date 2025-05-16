@@ -6,7 +6,8 @@ type CreateWaitlistEntryInput struct {
 }
 
 type WaitlistEntryResponse struct {
-	ID     string `json:"id"`
-	Email  string `json:"email"`
-	Source string `json:"source,omitempty"` // Optional field
+	ID        string `json:"id"`
+	Email     string `json:"email"`
+	Source    string `json:"source,omitempty"` // Optional field
+	CreatedAt string `json:"created_at"`
 }

@@ -51,14 +51,18 @@ func (s *WaitlistServiceImpl) GetAllWaitlistEntries() ([]dto.WaitlistEntryRespon
 		return nil, err
 	}
 
-	var responses []dto.WaitlistEntryResponse
+	// Always initialize an empty slice, not nil
+	responses := make([]dto.WaitlistEntryResponse, 0, len(entries))
+
 	for _, entry := range entries {
 		responses = append(responses, dto.WaitlistEntryResponse{
-			ID:     entry.ID.String(),
-			Email:  entry.Email,
-			Source: entry.Source,
+			ID:        entry.ID.String(),
+			Email:     entry.Email,
+			Source:    entry.Source,
+			CreatedAt: entry.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		})
 	}
+
 	return responses, nil
 }
 

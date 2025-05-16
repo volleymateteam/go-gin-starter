@@ -4,11 +4,13 @@ import (
 	"go-gin-starter/dto"
 	"go-gin-starter/pkg/constants"
 	httpPkg "go-gin-starter/pkg/http"
+	"go-gin-starter/pkg/logger"
 	"go-gin-starter/services"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 // WaitlistController handles waitlist-related HTTP requests
@@ -48,8 +50,14 @@ func (c *WaitlistController) SubmitWaitlist(ctx *gin.Context) {
 func (c *WaitlistController) GetAllWaitlist(ctx *gin.Context) {
 	entries, err := c.waitlistService.GetAllWaitlistEntries()
 	if err != nil {
-		httpPkg.RespondError(ctx, http.StatusInternalServerError, err.Error())
+		logger.Error("Failed to get waitlist entries", zap.Error(err))
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, constants.ErrInternalServer)
 		return
+	}
+
+	// Always return an initialized array, even if empty
+	if entries == nil {
+		entries = []dto.WaitlistEntryResponse{}
 	}
 
 	httpPkg.RespondSuccess(ctx, http.StatusOK, entries, constants.MsgWaitlistFetched)

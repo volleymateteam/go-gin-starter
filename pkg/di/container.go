@@ -45,6 +45,9 @@ func NewContainer() *Container {
 	matchService := services.NewMatchService(matchRepo, teamRepo, seasonRepo)
 	seasonService := services.NewSeasonService(seasonRepo, uploadService)
 
+	// Initialize global service references for backward compatibility
+	services.InitGlobalServices(userService)
+
 	// Initialize controllers
 	userController := controllers.NewUserController(userService, uploadService)
 	adminUserController := controllers.NewAdminUserController(userService)

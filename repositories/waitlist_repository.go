@@ -46,9 +46,19 @@ func (r *GormWaitlistRepository) IsEmailAlreadyInWaitlist(email string) (bool, e
 // GetAllWaitlistEntries retrieves all waitlist records (ID, Email, Source)
 func (r *GormWaitlistRepository) GetAllWaitlistEntries() ([]models.WaitlistEntry, error) {
 	var entries []models.WaitlistEntry
-	if err := database.DB.Order("created_at desc").Find(&entries).Error; err != nil {
-		return nil, err
+
+	// Use Debug mode to log SQL queries
+	result := database.DB.Debug().Order("created_at desc").Find(&entries)
+
+	if result.Error != nil {
+		return nil, result.Error
 	}
+
+	// Return empty slice instead of nil if no records found
+	if len(entries) == 0 {
+		return []models.WaitlistEntry{}, nil
+	}
+
 	return entries, nil
 }
 
