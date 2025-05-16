@@ -17,6 +17,7 @@ func SetupRoutes(router gin.IRouter) {
 	waitlistCtrl := container.WaitlistController
 	authCtrl := container.AuthController
 	teamCtrl := container.TeamController
+	matchCtrl := container.MatchController
 
 	// Public Routes (No authentication)
 	router.POST("/register", authCtrl.Register)
@@ -73,13 +74,13 @@ func SetupRoutes(router gin.IRouter) {
 		admin.PATCH("/seasons/:id/upload-logo", middleware.RequirePermission("manage_season"), controllers.UploadSeasonLogo)
 
 		// Admin Match Management
-		admin.POST("/matches", middleware.RequirePermission("manage_matches"), controllers.CreateMatch)
-		admin.GET("/matches", middleware.RequirePermission("manage_matches"), controllers.GetAllMatches)
-		admin.GET("/matches/:id", middleware.RequirePermission("manage_matches"), controllers.GetMatchByID)
-		admin.PUT("/matches/:id", middleware.RequirePermission("manage_matches"), controllers.UpdateMatch)
-		admin.DELETE("/matches/:id", middleware.RequirePermission("manage_matches"), controllers.DeleteMatch)
-		admin.PATCH("/matches/:id/upload-video", middleware.RequirePermission("upload_video"), controllers.UploadMatchVideo)
-		admin.PATCH("/matches/:id/upload-scout", middleware.RequirePermission("upload_scout"), controllers.UploadMatchScout)
+		admin.POST("/matches", middleware.RequirePermission("manage_matches"), matchCtrl.CreateMatch)
+		admin.GET("/matches", middleware.RequirePermission("manage_matches"), matchCtrl.GetAllMatches)
+		admin.GET("/matches/:id", middleware.RequirePermission("manage_matches"), matchCtrl.GetMatchByID)
+		admin.PUT("/matches/:id", middleware.RequirePermission("manage_matches"), matchCtrl.UpdateMatch)
+		admin.DELETE("/matches/:id", middleware.RequirePermission("manage_matches"), matchCtrl.DeleteMatch)
+		admin.PATCH("/matches/:id/upload-video", middleware.RequirePermission("upload_video"), matchCtrl.UploadMatchVideo)
+		admin.PATCH("/matches/:id/upload-scout", middleware.RequirePermission("upload_scout"), matchCtrl.UploadMatchScout)
 	}
 
 	// AdminOrSelf routes

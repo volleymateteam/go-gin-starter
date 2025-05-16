@@ -13,6 +13,7 @@ type Container struct {
 	WaitlistController  *controllers.WaitlistController
 	AuthController      *controllers.AuthController
 	TeamController      *controllers.TeamController
+	MatchController     *controllers.MatchController
 	// Add other controllers here as needed
 }
 
@@ -23,6 +24,8 @@ func NewContainer() *Container {
 	waitlistRepo := repositories.NewWaitlistRepository()
 	authRepo := repositories.NewAuthRepository()
 	teamRepo := repositories.NewTeamRepository()
+	matchRepo := repositories.NewMatchRepository()
+	seasonRepo := repositories.NewSeasonRepository()
 
 	// Add other repositories here as needed
 
@@ -31,6 +34,7 @@ func NewContainer() *Container {
 	waitlistService := services.NewWaitlistService(waitlistRepo, userService)
 	authService := services.NewAuthService(authRepo, userRepo)
 	teamService := services.NewTeamService(teamRepo)
+	matchService := services.NewMatchService(matchRepo, teamRepo, seasonRepo)
 
 	// Initialize controllers
 	userController := controllers.NewUserController(userService)
@@ -38,6 +42,7 @@ func NewContainer() *Container {
 	waitlistController := controllers.NewWaitlistController(waitlistService)
 	authController := controllers.NewAuthController(authService)
 	teamController := controllers.NewTeamController(teamService)
+	matchController := controllers.NewMatchController(matchService)
 
 	return &Container{
 		UserController:      userController,
@@ -45,6 +50,7 @@ func NewContainer() *Container {
 		WaitlistController:  waitlistController,
 		AuthController:      authController,
 		TeamController:      teamController,
+		MatchController:     matchController,
 		// Add other controllers here as needed
 	}
 }

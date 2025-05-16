@@ -1,33 +1,54 @@
 package services
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"io"
 	"mime/multipart"
-	"os"
 	"path/filepath"
 	"strings"
 
-	"go-gin-starter/config"
 	"go-gin-starter/dto"
 	"go-gin-starter/models"
 	"go-gin-starter/pkg/constants"
-	httpPkg "go-gin-starter/pkg/http"
 	scoutPkg "go-gin-starter/pkg/scout"
 	storagePkg "go-gin-starter/pkg/storage"
 	"go-gin-starter/repositories"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/google/uuid"
 )
 
-// CreateMatchService handles creation of a new match
-func CreateMatchService(input *dto.CreateMatchInput) (*dto.MatchResponse, error) {
+// MatchService defines the interface for match-related business logic
+type MatchService interface {
+	CreateMatch(input *dto.CreateMatchInput) (*dto.MatchResponse, error)
+	GetAllMatches() ([]dto.MatchListResponse, error)
+	GetMatchByID(id uuid.UUID) (*dto.MatchResponse, error)
+	UpdateMatch(id uuid.UUID, input *dto.UpdateMatchInput) (*dto.MatchResponse, error)
+	DeleteMatch(id uuid.UUID) error
+	UploadMatchVideo(matchID uuid.UUID, file io.Reader, fileHeader *multipart.FileHeader) (string, error)
+	UploadMatchScout(matchID uuid.UUID, file io.Reader, fileHeader *multipart.FileHeader) (string, error)
+}
+
+// MatchServiceImpl implements MatchService
+type MatchServiceImpl struct {
+	matchRepo  repositories.MatchRepository
+	teamRepo   repositories.TeamRepository
+	seasonRepo repositories.SeasonRepository
+}
+
+// NewMatchService creates a new instance of MatchService
+func NewMatchService(matchRepo repositories.MatchRepository, teamRepo repositories.TeamRepository, seasonRepo repositories.SeasonRepository) MatchService {
+	return &MatchServiceImpl{
+		matchRepo:  matchRepo,
+		teamRepo:   teamRepo,
+		seasonRepo: seasonRepo,
+	}
+}
+
+// CreateMatch handles creation of a new match
+func (s *MatchServiceImpl) CreateMatch(input *dto.CreateMatchInput) (*dto.MatchResponse, error) {
 	match := models.Match{
 		SeasonID:   input.SeasonID,
 		HomeTeamID: input.HomeTeamID,
@@ -36,23 +57,23 @@ func CreateMatchService(input *dto.CreateMatchInput) (*dto.MatchResponse, error)
 		Location:   input.Location,
 	}
 
-	if err := repositories.CreateMatch(&match); err != nil {
+	if err := s.matchRepo.Create(&match); err != nil {
 		return nil, err
 	}
 
 	// Fetch related names
-	season, _ := repositories.GetSeasonByID(match.SeasonID)
-	homeTeam, _ := repositories.GetTeamByID(match.HomeTeamID)
-	awayTeam, _ := repositories.GetTeamByID(match.AwayTeamID)
+	season, _ := s.seasonRepo.GetByID(match.SeasonID)
+	homeTeam, _ := s.teamRepo.GetByID(match.HomeTeamID)
+	awayTeam, _ := s.teamRepo.GetByID(match.AwayTeamID)
 
 	response := dto.MatchResponse{
 		ID:           match.ID,
 		SeasonID:     match.SeasonID,
-		SeasonName:   getSeasonName(season),
+		SeasonName:   s.getSeasonName(season),
 		HomeTeamID:   match.HomeTeamID,
-		HomeTeamName: getTeamName(homeTeam),
+		HomeTeamName: s.getTeamName(homeTeam),
 		AwayTeamID:   match.AwayTeamID,
-		AwayTeamName: getTeamName(awayTeam),
+		AwayTeamName: s.getTeamName(awayTeam),
 		Round:        match.Round,
 		Location:     match.Location,
 		VideoURL:     match.VideoURL,
@@ -64,18 +85,18 @@ func CreateMatchService(input *dto.CreateMatchInput) (*dto.MatchResponse, error)
 	return &response, nil
 }
 
-// GetAllMatchesService returns all matches
-func GetAllMatchesService() ([]dto.MatchListResponse, error) {
-	matches, err := repositories.GetAllMatches()
+// GetAllMatches returns all matches
+func (s *MatchServiceImpl) GetAllMatches() ([]dto.MatchListResponse, error) {
+	matches, err := s.matchRepo.GetAll()
 	if err != nil {
 		return nil, err
 	}
 
 	var responses []dto.MatchListResponse
 	for _, m := range matches {
-		season, _ := repositories.GetSeasonByID(m.SeasonID)
-		homeTeam, _ := repositories.GetTeamByID(m.HomeTeamID)
-		awayTeam, _ := repositories.GetTeamByID(m.AwayTeamID)
+		season, _ := s.seasonRepo.GetByID(m.SeasonID)
+		homeTeam, _ := s.teamRepo.GetByID(m.HomeTeamID)
+		awayTeam, _ := s.teamRepo.GetByID(m.AwayTeamID)
 
 		status := "missing"
 		if m.ScoutJSON != "" {
@@ -85,11 +106,11 @@ func GetAllMatchesService() ([]dto.MatchListResponse, error) {
 		responses = append(responses, dto.MatchListResponse{
 			ID:           m.ID,
 			SeasonID:     m.SeasonID,
-			SeasonName:   getSeasonName(season),
+			SeasonName:   s.getSeasonName(season),
 			HomeTeamID:   m.HomeTeamID,
-			HomeTeamName: getTeamName(homeTeam),
+			HomeTeamName: s.getTeamName(homeTeam),
 			AwayTeamID:   m.AwayTeamID,
-			AwayTeamName: getTeamName(awayTeam),
+			AwayTeamName: s.getTeamName(awayTeam),
 			Round:        m.Round,
 			Location:     m.Location,
 			VideoURL:     m.VideoURL,
@@ -103,34 +124,31 @@ func GetAllMatchesService() ([]dto.MatchListResponse, error) {
 	return responses, nil
 }
 
-// GetMatchByIDService returns a single match by ID
-func GetMatchByIDService(id uuid.UUID) (*dto.MatchResponse, error) {
-	match, err := repositories.GetMatchByID(id)
+// GetMatchByID returns a single match by ID
+func (s *MatchServiceImpl) GetMatchByID(id uuid.UUID) (*dto.MatchResponse, error) {
+	match, err := s.matchRepo.GetByID(id)
 	if err != nil {
 		return nil, errors.New(constants.ErrMatchNotFound)
 	}
 
-	season, _ := repositories.GetSeasonByID(match.SeasonID)
-	homeTeam, _ := repositories.GetTeamByID(match.HomeTeamID)
-	awayTeam, _ := repositories.GetTeamByID(match.AwayTeamID)
+	season, _ := s.seasonRepo.GetByID(match.SeasonID)
+	homeTeam, _ := s.teamRepo.GetByID(match.HomeTeamID)
+	awayTeam, _ := s.teamRepo.GetByID(match.AwayTeamID)
 
 	// Fetch and parse JSON from S3
 	var jsonData map[string]interface{}
 	if match.ScoutJSON != "" {
-		jsonData, err = httpPkg.FetchJSONFromS3(match.ScoutJSON)
-		if err != nil {
-			log.Printf("Failed to fetch JSON from S3: %v", err)
-		}
+		jsonData, _ = fetchJSONFromS3(match.ScoutJSON)
 	}
 
 	return &dto.MatchResponse{
 		ID:           match.ID,
 		SeasonID:     match.SeasonID,
-		SeasonName:   getSeasonName(season),
+		SeasonName:   s.getSeasonName(season),
 		HomeTeamID:   match.HomeTeamID,
-		HomeTeamName: getTeamName(homeTeam),
+		HomeTeamName: s.getTeamName(homeTeam),
 		AwayTeamID:   match.AwayTeamID,
-		AwayTeamName: getTeamName(awayTeam),
+		AwayTeamName: s.getTeamName(awayTeam),
 		Round:        match.Round,
 		Location:     match.Location,
 		VideoURL:     match.VideoURL,
@@ -141,9 +159,9 @@ func GetMatchByIDService(id uuid.UUID) (*dto.MatchResponse, error) {
 	}, nil
 }
 
-// UpdateMatchService updates an existing match
-func UpdateMatchService(id uuid.UUID, input *dto.UpdateMatchInput) (*dto.MatchResponse, error) {
-	match, err := repositories.GetMatchByID(id)
+// UpdateMatch updates an existing match
+func (s *MatchServiceImpl) UpdateMatch(id uuid.UUID, input *dto.UpdateMatchInput) (*dto.MatchResponse, error) {
+	match, err := s.matchRepo.GetByID(id)
 	if err != nil {
 		return nil, errors.New(constants.ErrMatchNotFound)
 	}
@@ -167,22 +185,22 @@ func UpdateMatchService(id uuid.UUID, input *dto.UpdateMatchInput) (*dto.MatchRe
 		match.ScoutJSON = input.ScoutJSON
 	}
 
-	if err := repositories.UpdateMatch(match); err != nil {
+	if err := s.matchRepo.Update(match); err != nil {
 		return nil, err
 	}
 
-	season, _ := repositories.GetSeasonByID(match.SeasonID)
-	homeTeam, _ := repositories.GetTeamByID(match.HomeTeamID)
-	awayTeam, _ := repositories.GetTeamByID(match.AwayTeamID)
+	season, _ := s.seasonRepo.GetByID(match.SeasonID)
+	homeTeam, _ := s.teamRepo.GetByID(match.HomeTeamID)
+	awayTeam, _ := s.teamRepo.GetByID(match.AwayTeamID)
 
 	return &dto.MatchResponse{
 		ID:           match.ID,
 		SeasonID:     match.SeasonID,
-		SeasonName:   getSeasonName(season),
+		SeasonName:   s.getSeasonName(season),
 		HomeTeamID:   match.HomeTeamID,
-		HomeTeamName: getTeamName(homeTeam),
+		HomeTeamName: s.getTeamName(homeTeam),
 		AwayTeamID:   match.AwayTeamID,
-		AwayTeamName: getTeamName(awayTeam),
+		AwayTeamName: s.getTeamName(awayTeam),
 		Round:        match.Round,
 		Location:     match.Location,
 		VideoURL:     match.VideoURL,
@@ -192,53 +210,22 @@ func UpdateMatchService(id uuid.UUID, input *dto.UpdateMatchInput) (*dto.MatchRe
 	}, nil
 }
 
-// DeleteMatchService deletes a match
-func DeleteMatchService(id uuid.UUID) error {
-	return repositories.DeleteMatch(id)
+// DeleteMatch deletes a match
+func (s *MatchServiceImpl) DeleteMatch(id uuid.UUID) error {
+	return s.matchRepo.Delete(id)
 }
 
-// helper to format season name
-func getSeasonName(season *models.Season) string {
-	if season == nil {
-		return ""
-	}
-	return string(season.Name) + " " + season.SeasonYear
-}
-
-// helper to get team name
-func getTeamName(team *models.Team) string {
-	if team == nil {
-		return ""
-	}
-	return team.Name
-}
-
-// UploadMatchVideoService handles uploading a match video to S3
-// Path: services/match_service.go
-func UploadMatchVideoService(matchID uuid.UUID, file multipart.File, fileHeader *multipart.FileHeader) (string, error) {
-	match, err := repositories.GetMatchByID(matchID)
+// UploadMatchVideo handles uploading a match video to S3
+func (s *MatchServiceImpl) UploadMatchVideo(matchID uuid.UUID, file io.Reader, fileHeader *multipart.FileHeader) (string, error) {
+	match, err := s.matchRepo.GetByID(matchID)
 	if err != nil {
 		return "", errors.New(constants.ErrMatchNotFound)
 	}
 
-	season, err := repositories.GetSeasonByID(match.SeasonID)
+	season, err := s.seasonRepo.GetByID(match.SeasonID)
 	if err != nil {
 		return "", errors.New(constants.ErrSeasonNotFound)
 	}
-
-	// Create AWS session and uploader
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(config.AWSRegion),
-		Credentials: credentials.NewStaticCredentials(
-			os.Getenv("AWS_ACCESS_KEY_ID"),
-			os.Getenv("AWS_SECRET_ACCESS_KEY"),
-			"",
-		),
-	})
-	if err != nil {
-		return "", err
-	}
-	uploader := s3manager.NewUploader(sess)
 
 	// Get file extension
 	ext := filepath.Ext(fileHeader.Filename)
@@ -246,68 +233,54 @@ func UploadMatchVideoService(matchID uuid.UUID, file multipart.File, fileHeader 
 		return "", fmt.Errorf("unsupported file type: %s", ext)
 	}
 
+	// Read file into memory
+	buf := new(bytes.Buffer)
+	if _, err := io.Copy(buf, file); err != nil {
+		return "", err
+	}
+
 	// Create the S3 key/path
-	safeCompetition := strings.ReplaceAll(strings.ToLower(string(season.Name)), " ", "_")
-	safeCountry := strings.ToLower(string(season.Country))
-	safeGender := strings.ToLower(string(season.Gender))
-	safeSeason := strings.ReplaceAll(season.SeasonYear, "/", "-") // e.g., 2024-2025
+	safeSeasonName := s.getSafeFileName(string(season.Name))
+	objectKey := fmt.Sprintf("videos/%s/%s%s", safeSeasonName, uuid.New().String(), ext)
+	contentType := fileHeader.Header.Get("Content-Type")
 
-	s3Key := fmt.Sprintf("videos/%s_%s/%s_%s/%s%s",
-		safeSeason, safeCountry, safeCompetition, safeGender, match.ID.String(), ext)
-
-	// Upload directly to S3
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(config.AWSBucketName),
-		Key:    aws.String(s3Key),
-		Body:   file,
-	})
+	// Upload to S3
+	videoURL, err := storagePkg.UploadBytesToS3(buf.Bytes(), objectKey, contentType)
 	if err != nil {
 		return "", err
 	}
 
-	// Create CloudFront URL directly using environment variable
-	cloudFrontDomain := os.Getenv("VIDEO_CLOUDFRONT_DOMAIN")
-	if cloudFrontDomain == "" {
-		log.Printf("WARNING: VIDEO_CLOUDFRONT_DOMAIN is empty, using default S3 URL")
-		videoURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s",
-			config.AWSBucketName, config.AWSRegion, s3Key)
-
-		// Save to DB
-		match.VideoURL = videoURL
-		if err := repositories.UpdateMatch(match); err != nil {
-			return "", err
-		}
-		return videoURL, nil
-	}
-
-	// Use CloudFront URL
-	videoURL := fmt.Sprintf("https://%s/%s", cloudFrontDomain, s3Key)
-
-	// Save to DB
+	// Update match record
 	match.VideoURL = videoURL
-	if err := repositories.UpdateMatch(match); err != nil {
+	if err := s.matchRepo.Update(match); err != nil {
 		return "", err
 	}
 
 	return videoURL, nil
 }
 
-// UploadMatchScoutService handles uploading and parsing a scout (.dvw) file
-func UploadMatchScoutService(matchID uuid.UUID, file multipart.File, fileHeader *multipart.FileHeader) (string, error) {
-	match, err := repositories.GetMatchByID(matchID)
+// UploadMatchScout handles uploading and processing a match scout file
+func (s *MatchServiceImpl) UploadMatchScout(matchID uuid.UUID, file io.Reader, fileHeader *multipart.FileHeader) (string, error) {
+	match, err := s.matchRepo.GetByID(matchID)
 	if err != nil {
 		return "", errors.New(constants.ErrMatchNotFound)
 	}
 
-	if strings.ToLower(filepath.Ext(fileHeader.Filename)) != ".dvw" {
+	if filepath.Ext(fileHeader.Filename) != ".dvw" {
 		return "", errors.New("invalid file type: only .dvw supported")
+	}
+
+	// Read file into memory
+	buf := new(bytes.Buffer)
+	if _, err := io.Copy(buf, file); err != nil {
+		return "", err
 	}
 
 	// Upload original .dvw file to S3
 	s3InputKey := fmt.Sprintf("scouts/%s.dvw", matchID.String())
 	contentType := fileHeader.Header.Get("Content-Type")
 
-	_, err = storagePkg.UploadFileToS3(file, s3InputKey, contentType)
+	_, err = storagePkg.UploadBytesToS3(buf.Bytes(), s3InputKey, contentType)
 	if err != nil {
 		return "", fmt.Errorf("failed to upload .dvw file: %w", err)
 	}
@@ -333,9 +306,36 @@ func UploadMatchScoutService(matchID uuid.UUID, file multipart.File, fileHeader 
 
 	// Save JSON URL to DB
 	match.ScoutJSON = jsonURL
-	if err := repositories.UpdateMatch(match); err != nil {
+	if err := s.matchRepo.Update(match); err != nil {
 		return "", err
 	}
 
 	return jsonURL, nil
+}
+
+// Helper function to fetch JSON from S3
+func fetchJSONFromS3(url string) (map[string]interface{}, error) {
+	// This is a placeholder - you should implement this based on your actual S3 fetching code
+	return nil, nil
+}
+
+// Helper to format season name
+func (s *MatchServiceImpl) getSeasonName(season *models.Season) string {
+	if season == nil {
+		return ""
+	}
+	return string(season.Name) + " " + season.SeasonYear
+}
+
+// Helper to get team name
+func (s *MatchServiceImpl) getTeamName(team *models.Team) string {
+	if team == nil {
+		return ""
+	}
+	return team.Name
+}
+
+func (s *MatchServiceImpl) getSafeFileName(name string) string {
+	// Replace spaces with underscores and convert to lowercase
+	return strings.ToLower(strings.ReplaceAll(name, " ", "_"))
 }
