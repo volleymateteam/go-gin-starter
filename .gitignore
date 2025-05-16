@@ -66,3 +66,6 @@ docs_deployment
 
 # Postman collection files
 Volleymate_go.postman_collection.json
+
+# Nginx configuration scripts
+update_nginx_config.sh
