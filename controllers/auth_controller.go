@@ -1,7 +1,10 @@
 package controllers
 
 import (
+	"fmt"
+	"go-gin-starter/config"
 	"go-gin-starter/dto"
+	"go-gin-starter/pkg/auth"
 	"go-gin-starter/pkg/constants"
 	httpPkg "go-gin-starter/pkg/http"
 	"go-gin-starter/services"
@@ -37,15 +40,20 @@ func (c *AuthController) Register(ctx *gin.Context) {
 		return
 	}
 
+	// Get all permissions (combines role permissions with extra permissions)
+	allPermissions := auth.GetAllPermissions(user)
+
 	response := dto.UserResponse{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		Gender:    string(user.Gender),
-		AvatarURL: user.Avatar,
-		Role:      string(user.Role),
-		CreatedAt: user.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+		ID:               user.ID,
+		Username:         user.Username,
+		Email:            user.Email,
+		Gender:           string(user.Gender),
+		AvatarURL:        fmt.Sprintf("https://%s/avatars/%s", config.AssetCloudFrontDomain, user.Avatar),
+		Role:             string(user.Role),
+		Permissions:      allPermissions,
+		ExtraPermissions: []string{}, // New users have no extra permissions
+		CreatedAt:        user.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:        user.UpdatedAt.Format(time.RFC3339),
 	}
 	httpPkg.RespondSuccess(ctx, http.StatusCreated, response, constants.MsgUserRegistered)
 }

@@ -172,7 +172,7 @@ func (s *UserServiceImpl) GetUserProfile(userID uuid.UUID) (*dto.UserResponse, e
 		avatarURL = user.Avatar
 	} else {
 		// Default avatar or partial path, add CloudFront domain
-		avatarURL = fmt.Sprintf("https://%s/%s", config.AssetCloudFrontDomain, user.Avatar)
+		avatarURL = fmt.Sprintf("https://%s/avatars/%s", config.AssetCloudFrontDomain, user.Avatar)
 	}
 
 	// Convert StringArray to []string for the DTO

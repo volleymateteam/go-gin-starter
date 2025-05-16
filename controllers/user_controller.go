@@ -1,7 +1,10 @@
 package controllers
 
 import (
+	"fmt"
+	"go-gin-starter/config"
 	"go-gin-starter/dto"
+	"go-gin-starter/pkg/auth"
 	"go-gin-starter/pkg/constants"
 	httpPkg "go-gin-starter/pkg/http"
 	"go-gin-starter/services"
@@ -163,7 +166,8 @@ func (c *UserController) UploadAvatar(ctx *gin.Context) {
 		return
 	}
 
-	httpPkg.RespondSuccess(ctx, http.StatusOK, gin.H{"avatar_url": avatarURL}, constants.MsgAvatarUploaded)
+	cloudFrontAvatarURL := fmt.Sprintf("https://%s/avatars/%s", config.AssetCloudFrontDomain, avatarURL)
+	httpPkg.RespondSuccess(ctx, http.StatusOK, gin.H{"avatar_url": cloudFrontAvatarURL}, constants.MsgAvatarUploaded)
 }
 
 // GetAllUsers handles retrieving all users with pagination
@@ -182,15 +186,26 @@ func (c *UserController) GetAllUsers(ctx *gin.Context) {
 
 	var userResponses []dto.UserResponse
 	for _, user := range users {
+		// Get all permissions (combines role permissions with extra permissions)
+		allPermissions := auth.GetAllPermissions(&user)
+
+		// Convert StringArray to []string for the DTO
+		extraPermissions := []string{} // Initialize as empty array instead of nil/null
+		if user.ExtraPermissions != nil {
+			extraPermissions = []string(user.ExtraPermissions)
+		}
+
 		userResponses = append(userResponses, dto.UserResponse{
-			ID:        user.ID,
-			Username:  user.Username,
-			Email:     user.Email,
-			Gender:    string(user.Gender),
-			AvatarURL: user.Avatar,
-			Role:      string(user.Role),
-			CreatedAt: user.CreatedAt.Format(time.RFC3339),
-			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+			ID:               user.ID,
+			Username:         user.Username,
+			Email:            user.Email,
+			Gender:           string(user.Gender),
+			AvatarURL:        fmt.Sprintf("https://%s/avatars/%s", config.AssetCloudFrontDomain, user.Avatar),
+			Role:             string(user.Role),
+			Permissions:      allPermissions,
+			ExtraPermissions: extraPermissions,
+			CreatedAt:        user.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:        user.UpdatedAt.Format(time.RFC3339),
 		})
 	}
 
