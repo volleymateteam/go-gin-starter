@@ -11,17 +11,24 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+
+	"go-gin-starter/pkg/logger"
+	"go-gin-starter/pkg/upload"
+
+	"go.uber.org/zap"
 )
 
 // UserController handles user-related HTTP requests
 type UserController struct {
-	userService services.UserService
+	userService   services.UserService
+	uploadService upload.FileUploadService
 }
 
 // NewUserController creates a new instance of UserController
-func NewUserController(userService services.UserService) *UserController {
+func NewUserController(userService services.UserService, uploadService upload.FileUploadService) *UserController {
 	return &UserController{
-		userService: userService,
+		userService:   userService,
+		uploadService: uploadService,
 	}
 }
 
@@ -129,14 +136,29 @@ func (c *UserController) UploadAvatar(ctx *gin.Context) {
 		return
 	}
 
-	fileHeader, err := ctx.FormFile("avatar")
+	// Use the file upload service to validate and upload the file
+	avatarURL, err := c.uploadService.ValidateAndUploadFile(ctx, "avatar", upload.UserAvatar, constants.MaxAvatarFileSize)
 	if err != nil {
-		httpPkg.RespondError(ctx, http.StatusBadRequest, "Avatar file is required")
+		if err.Error() == constants.ErrLogoTooLarge ||
+			err.Error() == constants.ErrFileUploadRequired ||
+			err.Error() == constants.ErrInvalidFileType {
+			httpPkg.RespondError(ctx, http.StatusBadRequest, err.Error())
+			return
+		}
+		logger.Error("Avatar upload failed", zap.Error(err))
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, constants.ErrUploadFailed)
 		return
 	}
 
-	avatarURL, err := c.userService.UploadUserAvatar(userID, fileHeader)
+	// Update the user's avatar URL in the database
+	user, err := c.userService.GetUserByID(userID)
 	if err != nil {
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	user.Avatar = avatarURL
+	if err := c.userService.UpdateUser(user); err != nil {
 		httpPkg.RespondError(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}

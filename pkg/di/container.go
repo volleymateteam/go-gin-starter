@@ -2,6 +2,7 @@ package di
 
 import (
 	"go-gin-starter/controllers"
+	"go-gin-starter/pkg/upload"
 	"go-gin-starter/repositories"
 	"go-gin-starter/services"
 )
@@ -33,24 +34,27 @@ func NewContainer() *Container {
 
 	// Add other repositories here as needed
 
+	// Initialize utility services
+	uploadService := upload.NewFileUploadService()
+
 	// Initialize services
 	userService := services.NewUserService(userRepo)
 	waitlistService := services.NewWaitlistService(waitlistRepo, userService)
 	authService := services.NewAuthService(authRepo, userRepo)
-	teamService := services.NewTeamService(teamRepo)
+	teamService := services.NewTeamService(teamRepo, uploadService)
 	matchService := services.NewMatchService(matchRepo, teamRepo, seasonRepo)
-	seasonService := services.NewSeasonService(seasonRepo)
+	seasonService := services.NewSeasonService(seasonRepo, uploadService)
 
 	// Initialize controllers
-	userController := controllers.NewUserController(userService)
+	userController := controllers.NewUserController(userService, uploadService)
 	adminUserController := controllers.NewAdminUserController(userService)
 	adminUserPermissionsController := controllers.NewAdminUserPermissionsController(userService)
 	adminAuditController := controllers.NewAdminAuditController()
 	waitlistController := controllers.NewWaitlistController(waitlistService)
 	authController := controllers.NewAuthController(authService)
-	teamController := controllers.NewTeamController(teamService)
+	teamController := controllers.NewTeamController(teamService, uploadService)
 	matchController := controllers.NewMatchController(matchService)
-	seasonController := controllers.NewSeasonController(seasonService)
+	seasonController := controllers.NewSeasonController(seasonService, uploadService)
 	healthController := controllers.NewHealthController()
 
 	return &Container{

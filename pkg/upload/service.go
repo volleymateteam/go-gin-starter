@@ -14,9 +14,11 @@ import (
 	"go.uber.org/zap"
 )
 
+// FileType represents the type of file being uploaded
 type FileType string
 
 const (
+	// FileTypes
 	TeamLogo   FileType = "team_logo"
 	SeasonLogo FileType = "season_logo"
 	UserAvatar FileType = "user_avatar"
@@ -24,16 +26,20 @@ const (
 	MatchScout FileType = "match_scout"
 )
 
+// FileUploadService defines the interface for file upload operations
 type FileUploadService interface {
 	ValidateAndUploadFile(ctx *gin.Context, fileField string, fileType FileType, maxSize int64) (string, error)
 }
 
+// FileUploadServiceImpl implements FileUploadService
 type FileUploadServiceImpl struct{}
 
+// NewFileUploadService creates a new instance of FileUploadService
 func NewFileUploadService() FileUploadService {
 	return &FileUploadServiceImpl{}
 }
 
+// ValidateAndUploadFile validates and uploads a file
 func (s *FileUploadServiceImpl) ValidateAndUploadFile(ctx *gin.Context, fileField string, fileType FileType, maxSize int64) (string, error) {
 	// Set maximum request size
 	ctx.Request.Body = http.MaxBytesReader(ctx.Writer, ctx.Request.Body, maxSize)
@@ -82,19 +88,21 @@ func (s *FileUploadServiceImpl) ValidateAndUploadFile(ctx *gin.Context, fileFiel
 	return fileURL, nil
 }
 
-func (s *FileUploadServiceImpl) getAllowedExtensions(FileType FileType) []string {
-	switch FileType {
+// getAllowedExtensions returns allowed file extensions for a given file type
+func (s *FileUploadServiceImpl) getAllowedExtensions(fileType FileType) []string {
+	switch fileType {
 	case TeamLogo, SeasonLogo, UserAvatar:
 		return []string{".jpg", ".jpeg", ".png"}
 	case MatchVideo:
-		return []string{".mp4", ".avi", ".mov"}
+		return []string{".mp4", ".mov", ".mkv"}
 	case MatchScout:
-		return []string{".dvw"}
+		return []string{".dvw"} // Scout files have to be .dvw format
 	default:
 		return []string{}
 	}
 }
 
+// isExtensionAllowed checks if a file extension is allowed
 func (s *FileUploadServiceImpl) isExtensionAllowed(ext string, allowedExts []string) bool {
 	ext = strings.ToLower(ext)
 	for _, allowed := range allowedExts {
@@ -105,6 +113,7 @@ func (s *FileUploadServiceImpl) isExtensionAllowed(ext string, allowedExts []str
 	return false
 }
 
+// generateObjectKey generates an S3 object key based on file type
 func (s *FileUploadServiceImpl) generateObjectKey(fileType FileType, ext string) string {
 	filename := uuid.New().String() + ext
 
@@ -124,6 +133,7 @@ func (s *FileUploadServiceImpl) generateObjectKey(fileType FileType, ext string)
 	}
 }
 
+// inferContentType infers the content type from a file extension
 func (s *FileUploadServiceImpl) inferContentType(ext string) string {
 	ext = strings.ToLower(ext)
 	switch ext {

@@ -5,11 +5,9 @@ import (
 	"go-gin-starter/pkg/constants"
 	httpPkg "go-gin-starter/pkg/http"
 	"go-gin-starter/pkg/logger"
-	"go-gin-starter/pkg/storage"
+	"go-gin-starter/pkg/upload"
 	"go-gin-starter/services"
 	"net/http"
-	"path/filepath"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -19,12 +17,14 @@ import (
 // SeasonController handles season-related HTTP requests
 type SeasonController struct {
 	seasonService services.SeasonService
+	uploadService upload.FileUploadService
 }
 
 // NewSeasonController creates a new instance of SeasonController
-func NewSeasonController(seasonService services.SeasonService) *SeasonController {
+func NewSeasonController(seasonService services.SeasonService, uploadService upload.FileUploadService) *SeasonController {
 	return &SeasonController{
 		seasonService: seasonService,
+		uploadService: uploadService,
 	}
 }
 
@@ -113,64 +113,22 @@ func (c *SeasonController) DeleteSeason(ctx *gin.Context) {
 
 // UploadSeasonLogo handler for uploading a season logo
 func (c *SeasonController) UploadSeasonLogo(ctx *gin.Context) {
-	// Set maximum request size to prevent memory issues
-	maxSize := int64(5 * 1024 * 1024) // 5MB limit
-	ctx.Request.Body = http.MaxBytesReader(ctx.Writer, ctx.Request.Body, maxSize)
-
 	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		httpPkg.RespondError(ctx, http.StatusBadRequest, constants.ErrInvalidUserID)
 		return
 	}
 
-	fileHeader, err := ctx.FormFile("logo")
+	// Use the file upload service to validate and upload the file
+	logoURL, err := c.uploadService.ValidateAndUploadFile(ctx, "logo", upload.SeasonLogo, constants.MaxLogoFileSize)
 	if err != nil {
-		if strings.Contains(err.Error(), "http: request body too large") {
-			httpPkg.RespondError(ctx, http.StatusBadRequest, constants.ErrLogoTooLarge)
+		if err.Error() == constants.ErrLogoTooLarge ||
+			err.Error() == constants.ErrFileUploadRequired ||
+			err.Error() == constants.ErrInvalidFileType {
+			httpPkg.RespondError(ctx, http.StatusBadRequest, err.Error())
 			return
 		}
-		httpPkg.RespondError(ctx, http.StatusBadRequest, constants.ErrFileUploadRequired)
-		return
-	}
-
-	if fileHeader.Size > 2*1024*1024 {
-		httpPkg.RespondError(ctx, http.StatusBadRequest, constants.ErrLogoTooLarge)
-		return
-	}
-
-	ext := filepath.Ext(fileHeader.Filename)
-	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
-		httpPkg.RespondError(ctx, http.StatusBadRequest, constants.ErrInvalidFileType)
-		return
-	}
-
-	src, err := fileHeader.Open()
-	if err != nil {
-		logger.Error("Failed to open uploaded file", zap.Error(err))
-		httpPkg.RespondError(ctx, http.StatusInternalServerError, constants.ErrUploadFailed)
-		return
-	}
-	defer src.Close()
-
-	newFileName := uuid.New().String() + ext
-	key := filepath.Join("logos/seasons", newFileName)
-	contentType := fileHeader.Header.Get("Content-Type")
-
-	// If content type is missing, try to infer it
-	if contentType == "" {
-		switch ext {
-		case ".jpg", ".jpeg":
-			contentType = "image/jpeg"
-		case ".png":
-			contentType = "image/png"
-		default:
-			contentType = "application/octet-stream"
-		}
-	}
-
-	logoURL, err := storage.UploadFileToS3(src, key, contentType)
-	if err != nil {
-		logger.Error("S3 upload failed", zap.Error(err), zap.String("key", key))
+		logger.Error("File upload failed", zap.Error(err))
 		httpPkg.RespondError(ctx, http.StatusInternalServerError, constants.ErrUploadFailed)
 		return
 	}

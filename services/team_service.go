@@ -8,7 +8,7 @@ import (
 	"go-gin-starter/models"
 	"go-gin-starter/pkg/constants"
 	storagePkg "go-gin-starter/pkg/storage"
-	validationPkg "go-gin-starter/pkg/validation"
+	"go-gin-starter/pkg/upload"
 	"go-gin-starter/repositories"
 	"mime/multipart"
 	"path/filepath"
@@ -24,18 +24,22 @@ type TeamService interface {
 	UpdateTeam(id uuid.UUID, input *dto.UpdateTeamInput) (*dto.TeamResponse, error)
 	DeleteTeam(id uuid.UUID) error
 	UpdateTeamLogo(id uuid.UUID, logoFilename string) error
+
+	// Deprecated: Use FileUploadService directly from controllers instead.
 	UploadAndSaveTeamLogo(teamID uuid.UUID, file *multipart.FileHeader) (string, string, error)
 }
 
 // TeamServiceImpl implements TeamService
 type TeamServiceImpl struct {
-	teamRepo repositories.TeamRepository
+	teamRepo      repositories.TeamRepository
+	uploadService upload.FileUploadService
 }
 
 // NewTeamService creates a new instance of TeamService
-func NewTeamService(teamRepo repositories.TeamRepository) TeamService {
+func NewTeamService(teamRepo repositories.TeamRepository, uploadService upload.FileUploadService) TeamService {
 	return &TeamServiceImpl{
-		teamRepo: teamRepo,
+		teamRepo:      teamRepo,
+		uploadService: uploadService,
 	}
 }
 
@@ -127,19 +131,22 @@ func (s *TeamServiceImpl) UpdateTeamLogo(id uuid.UUID, logoFilename string) erro
 }
 
 // UploadAndSaveTeamLogo handles validation + saving + DB update
+// Deprecated: This method is kept for backward compatibility but should not be used.
+// Use the FileUploadService directly from controllers instead.
 func (s *TeamServiceImpl) UploadAndSaveTeamLogo(teamID uuid.UUID, file *multipart.FileHeader) (string, string, error) {
-	if err := validationPkg.ValidateImageFile(file); err != nil {
-		return "", "", err
-	}
-
-	ext := filepath.Ext(file.Filename)
-	newFileName := storagePkg.GenerateTeamLogoFileName(ext)
-	savePath := storagePkg.BuildTeamLogoPath(newFileName)
-
+	// Get team before updating
 	team, err := s.teamRepo.GetByID(teamID)
 	if err != nil {
 		return "", "", errors.New(constants.ErrTeamNotFound)
 	}
+
+	// File validation and upload is now handled by the upload service
+	// This method is kept for backward compatibility but should be deprecated
+	// in favor of directly using the upload service from the controller
+
+	ext := filepath.Ext(file.Filename)
+	newFileName := storagePkg.GenerateTeamLogoFileName(ext)
+	savePath := storagePkg.BuildTeamLogoPath(newFileName)
 
 	team.Logo = newFileName
 	if err := s.teamRepo.Update(team); err != nil {

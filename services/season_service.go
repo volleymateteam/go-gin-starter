@@ -7,6 +7,7 @@ import (
 	"go-gin-starter/dto"
 	"go-gin-starter/models"
 	"go-gin-starter/pkg/constants"
+	"go-gin-starter/pkg/upload"
 	"go-gin-starter/repositories"
 	"mime/multipart"
 
@@ -21,18 +22,22 @@ type SeasonService interface {
 	UpdateSeason(id uuid.UUID, input *dto.UpdateSeasonInput) (*dto.SeasonResponse, error)
 	DeleteSeason(id uuid.UUID) error
 	UpdateSeasonLogo(seasonID uuid.UUID, logoFilename string) error
+
+	// Deprecated: Use FileUploadService directly from controllers instead.
 	UploadAndSaveSeasonLogo(seasonID uuid.UUID, file *multipart.FileHeader) (string, error)
 }
 
 // SeasonServiceImpl implements SeasonService
 type SeasonServiceImpl struct {
-	seasonRepo repositories.SeasonRepository
+	seasonRepo    repositories.SeasonRepository
+	uploadService upload.FileUploadService
 }
 
 // NewSeasonService creates a new instance of SeasonService
-func NewSeasonService(seasonRepo repositories.SeasonRepository) SeasonService {
+func NewSeasonService(seasonRepo repositories.SeasonRepository, uploadService upload.FileUploadService) SeasonService {
 	return &SeasonServiceImpl{
-		seasonRepo: seasonRepo,
+		seasonRepo:    seasonRepo,
+		uploadService: uploadService,
 	}
 }
 
@@ -187,8 +192,19 @@ func (s *SeasonServiceImpl) UpdateSeasonLogo(seasonID uuid.UUID, logoFilename st
 }
 
 // UploadAndSaveSeasonLogo handles uploading and saving a season logo
+// Deprecated: This method is kept for backward compatibility but should not be used.
+// Use the FileUploadService directly from controllers instead.
 func (s *SeasonServiceImpl) UploadAndSaveSeasonLogo(seasonID uuid.UUID, file *multipart.FileHeader) (string, error) {
-	// Implementation will be added later
+	// Get season before updating
+	_, err := s.seasonRepo.GetByID(seasonID)
+	if err != nil {
+		return "", errors.New(constants.ErrSeasonNotFound)
+	}
+
+	// File validation and upload is now handled by the upload service
+	// This method is kept for backward compatibility but should be deprecated
+	// in favor of directly using the upload service from the controller
+
 	return "", nil
 }
 
@@ -197,36 +213,36 @@ func (s *SeasonServiceImpl) UploadAndSaveSeasonLogo(seasonID uuid.UUID, file *mu
 
 func CreateSeasonService(input *dto.CreateSeasonInput) (*dto.SeasonResponse, error) {
 	seasonRepo := repositories.NewSeasonRepository()
-	seasonService := NewSeasonService(seasonRepo)
+	seasonService := NewSeasonService(seasonRepo, upload.NewFileUploadService())
 	return seasonService.CreateSeason(input)
 }
 
 func GetAllSeasonsService() ([]dto.SeasonResponse, error) {
 	seasonRepo := repositories.NewSeasonRepository()
-	seasonService := NewSeasonService(seasonRepo)
+	seasonService := NewSeasonService(seasonRepo, upload.NewFileUploadService())
 	return seasonService.GetAllSeasons()
 }
 
 func GetSeasonByIDService(id uuid.UUID) (*dto.SeasonResponse, error) {
 	seasonRepo := repositories.NewSeasonRepository()
-	seasonService := NewSeasonService(seasonRepo)
+	seasonService := NewSeasonService(seasonRepo, upload.NewFileUploadService())
 	return seasonService.GetSeasonByID(id)
 }
 
 func UpdateSeasonService(id uuid.UUID, input *dto.UpdateSeasonInput) (*dto.SeasonResponse, error) {
 	seasonRepo := repositories.NewSeasonRepository()
-	seasonService := NewSeasonService(seasonRepo)
+	seasonService := NewSeasonService(seasonRepo, upload.NewFileUploadService())
 	return seasonService.UpdateSeason(id, input)
 }
 
 func DeleteSeasonService(id uuid.UUID) error {
 	seasonRepo := repositories.NewSeasonRepository()
-	seasonService := NewSeasonService(seasonRepo)
+	seasonService := NewSeasonService(seasonRepo, upload.NewFileUploadService())
 	return seasonService.DeleteSeason(id)
 }
 
 func UpdateSeasonLogoService(seasonID uuid.UUID, logoFilename string) error {
 	seasonRepo := repositories.NewSeasonRepository()
-	seasonService := NewSeasonService(seasonRepo)
+	seasonService := NewSeasonService(seasonRepo, upload.NewFileUploadService())
 	return seasonService.UpdateSeasonLogo(seasonID, logoFilename)
 }
