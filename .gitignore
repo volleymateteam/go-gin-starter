@@ -69,3 +69,8 @@ Volleymate_go.postman_collection.json
 
 # Nginx configuration scripts
 update_nginx_config.sh
+
+# Upload directories since assets are served from CloudFront
+uploads/
+uploads/logos/
+uploads/avatars/
