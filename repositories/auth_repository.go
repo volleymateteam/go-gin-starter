@@ -11,6 +11,7 @@ import (
 // AuthRepository defines the interface for authentication data operations
 type AuthRepository interface {
 	GetUserByEmail(email string) (*models.User, error)
+	GetUserByUsername(username string) (*models.User, error)
 	UpdateRefreshToken(userID uuid.UUID, token string, expiry time.Time) error
 	UpdateResetToken(email, token string, expiry time.Time) error
 	GetUserByRefreshToken(token string) (*models.User, error)
@@ -30,6 +31,15 @@ func NewAuthRepository() AuthRepository {
 func (r *GormAuthRepository) GetUserByEmail(email string) (*models.User, error) {
 	var user models.User
 	if err := database.DB.Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// GetUserByUsername finds a user by their username
+func (r *GormAuthRepository) GetUserByUsername(username string) (*models.User, error) {
+	var user models.User
+	if err := database.DB.Where("username = ?", username).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil

@@ -39,6 +39,31 @@ func (s *AuthServiceImpl) Register(username, email, password, gender string) (*m
 		return nil, errors.New(constants.ErrStrongPassword)
 	}
 
+	// Check if both username and email already exist
+	usernameExists := false
+	emailExists := false
+
+	// Check email
+	existingUser, err := s.authRepo.GetUserByEmail(email)
+	if err == nil && existingUser != nil {
+		emailExists = true
+	}
+
+	// Check username
+	existingUser, err = s.authRepo.GetUserByUsername(username)
+	if err == nil && existingUser != nil {
+		usernameExists = true
+	}
+
+	// Return appropriate error based on what exists
+	if emailExists && usernameExists {
+		return nil, errors.New(constants.ErrBothUserAndEmailExist)
+	} else if emailExists {
+		return nil, errors.New(constants.ErrEmailAlreadyExists)
+	} else if usernameExists {
+		return nil, errors.New(constants.ErrUserAlreadyExists)
+	}
+
 	// Hash the password
 	hashedPassword, err := authPkg.HashPassword(password)
 	if err != nil {

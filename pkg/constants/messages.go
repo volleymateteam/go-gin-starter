@@ -41,6 +41,7 @@ const (
 	ErrInvalidPassword       = "invalid password"
 	ErrEmailAlreadyExists    = "email already exists"
 	ErrUserAlreadyExists     = "user already exists"
+	ErrBothUserAndEmailExist = "both username and email already exist"
 	ErrPasswordsDoNotMatch   = "passwords do not match"
 	ErrExpiredToken          = "token has expired"
 	ErrRefreshTokenExpired   = "refresh token has expired"
