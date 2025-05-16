@@ -41,11 +41,14 @@ const (
 	ErrInvalidPassword       = "invalid password"
 	ErrEmailAlreadyExists    = "email already exists"
 	ErrUserAlreadyExists     = "user already exists"
+	ErrBothUserAndEmailExist = "both username and email already exist"
 	ErrPasswordsDoNotMatch   = "passwords do not match"
 	ErrExpiredToken          = "token has expired"
 	ErrRefreshTokenExpired   = "refresh token has expired"
 	ErrDatabaseConnection    = "database connection error"
 	ErrRateLimitExceeded     = "rate limit exceeded"
+	ErrInvalidID             = "invalid ID"
+	ErrPasswordHashFailed    = "failed to hash password"
 )
 
 // Success messages
@@ -96,4 +99,6 @@ const (
 	MsgUserPermissionsFetched = "user permissions fetched successfully"
 	MsgUserPermissionsReset   = "user permissions reset to role defaults"
 	MsgAuditLogsFetched       = "audit logs fetched successfully"
+	MsgWaitlistEntryRejected  = "waitlist entry rejected successfully"
+	MsgWaitlistSuccess        = "waitlist entry successfully processed"
 )

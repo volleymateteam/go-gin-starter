@@ -2,254 +2,216 @@ package controllers
 
 import (
 	"fmt"
+	"go-gin-starter/config"
 	"go-gin-starter/dto"
-	authPkg "go-gin-starter/pkg/auth"
+	"go-gin-starter/pkg/auth"
 	"go-gin-starter/pkg/constants"
 	httpPkg "go-gin-starter/pkg/http"
-	"go-gin-starter/pkg/storage"
 	"go-gin-starter/services"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+
+	"go-gin-starter/pkg/logger"
+	"go-gin-starter/pkg/upload"
+
+	"go.uber.org/zap"
 )
 
-func GetProfile(c *gin.Context) {
-	userIDInterface, exists := c.Get("user_id")
+// UserController handles user-related HTTP requests
+type UserController struct {
+	userService   services.UserService
+	uploadService upload.FileUploadService
+}
+
+// NewUserController creates a new instance of UserController
+func NewUserController(userService services.UserService, uploadService upload.FileUploadService) *UserController {
+	return &UserController{
+		userService:   userService,
+		uploadService: uploadService,
+	}
+}
+
+// Helper method to extract user ID from context
+func (c *UserController) getUserIDFromContext(ctx *gin.Context) (uuid.UUID, bool) {
+	userIDInterface, exists := ctx.Get("user_id")
 	if !exists {
-		httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrUnauthorized)
-		return
+		return uuid.UUID{}, false
 	}
 
 	userID, ok := userIDInterface.(uuid.UUID)
 	if !ok {
-		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInvalidUserID)
-		return
+		return uuid.UUID{}, false
 	}
 
-	user, err := services.GetUserByID(userID)
-	if err != nil {
-		httpPkg.RespondError(c, http.StatusNotFound, constants.ErrUserNotFound)
-		return
-	}
-
-	response := dto.UserResponse{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		Gender:    string(user.Gender),
-		AvatarURL: user.Avatar,
-		Role:      string(user.Role),
-		CreatedAt: user.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
-	}
-	httpPkg.RespondSuccess(c, http.StatusOK, response, constants.MsgProfileFetched)
+	return userID, true
 }
 
-func UpdateProfile(c *gin.Context) {
+// GetProfile handles getting the user's profile
+func (c *UserController) GetProfile(ctx *gin.Context) {
+	userID, ok := c.getUserIDFromContext(ctx)
+	if !ok {
+		httpPkg.RespondError(ctx, http.StatusUnauthorized, constants.ErrUnauthorized)
+		return
+	}
+
+	userProfile, err := c.userService.GetUserProfile(userID)
+	if err != nil {
+		httpPkg.RespondError(ctx, http.StatusNotFound, constants.ErrUserNotFound)
+		return
+	}
+
+	httpPkg.RespondSuccess(ctx, http.StatusOK, userProfile, constants.MsgProfileFetched)
+}
+
+// UpdateProfile handles updating the user's profile
+func (c *UserController) UpdateProfile(ctx *gin.Context) {
 	var input dto.UpdateUserInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		httpPkg.RespondError(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	userIDInterface, exists := c.Get("user_id")
-	if !exists {
-		httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrUnauthorized)
-		return
-	}
-
-	userID, ok := userIDInterface.(uuid.UUID)
+	userID, ok := c.getUserIDFromContext(ctx)
 	if !ok {
-		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInvalidUserID)
+		httpPkg.RespondError(ctx, http.StatusUnauthorized, constants.ErrUnauthorized)
 		return
 	}
 
-	user, err := services.GetUserByID(userID)
-	if err != nil {
-		httpPkg.RespondError(c, http.StatusNotFound, constants.ErrUserNotFound)
+	if err := c.userService.UpdateUserProfile(userID, input); err != nil {
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	if input.Username != "" {
-		user.Username = input.Username
-	}
-	if input.Email != "" {
-		user.Email = input.Email
-	}
-
-	if err := services.UpdateUser(user); err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgUserUpdated)
+	httpPkg.RespondSuccess(ctx, http.StatusOK, nil, constants.MsgUserUpdated)
 }
 
-func ChangePassword(c *gin.Context) {
+// ChangePassword handles updating the user's password
+func (c *UserController) ChangePassword(ctx *gin.Context) {
 	var input dto.ChangePasswordInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		httpPkg.RespondError(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	userIDInterface, exists := c.Get("user_id")
-	if !exists {
-		httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrUnauthorized)
-		return
-	}
-
-	userID, ok := userIDInterface.(uuid.UUID)
+	userID, ok := c.getUserIDFromContext(ctx)
 	if !ok {
-		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInvalidUserID)
+		httpPkg.RespondError(ctx, http.StatusUnauthorized, constants.ErrUnauthorized)
 		return
 	}
 
-	user, err := services.GetUserByID(userID)
-	if err != nil {
-		httpPkg.RespondError(c, http.StatusNotFound, constants.ErrUserNotFound)
+	if err := c.userService.ChangeUserPassword(userID, input.OldPassword, input.NewPassword); err != nil {
+		if err.Error() == constants.ErrPasswordMismatch {
+			httpPkg.RespondError(ctx, http.StatusBadRequest, constants.ErrPasswordMismatch)
+			return
+		}
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	if !authPkg.CheckPasswordHash(input.OldPassword, user.Password) {
-		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrPasswordMismatch)
-		return
-	}
-
-	hashedPassword, err := authPkg.HashPassword(input.NewPassword)
-	if err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	user.Password = hashedPassword
-
-	if err := services.UpdateUser(user); err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgPasswordChanged)
+	httpPkg.RespondSuccess(ctx, http.StatusOK, nil, constants.MsgPasswordChanged)
 }
 
-func DeleteProfile(c *gin.Context) {
-	userIDInterface, exists := c.Get("user_id")
-	if !exists {
-		httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrUnauthorized)
-		return
-	}
-
-	userID, ok := userIDInterface.(uuid.UUID)
+// DeleteProfile handles deleting the user's account
+func (c *UserController) DeleteProfile(ctx *gin.Context) {
+	userID, ok := c.getUserIDFromContext(ctx)
 	if !ok {
-		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInvalidUserID)
+		httpPkg.RespondError(ctx, http.StatusUnauthorized, constants.ErrUnauthorized)
 		return
 	}
 
-	if err := services.DeleteUserByID(userID); err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
+	if err := c.userService.DeleteUserProfile(userID); err != nil {
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgUserDeleted)
+	httpPkg.RespondSuccess(ctx, http.StatusOK, nil, constants.MsgUserDeleted)
 }
 
-func UploadAvatar(c *gin.Context) {
-	userIDInterface, exists := c.Get("user_id")
-	if !exists {
-		httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrUnauthorized)
-		return
-	}
-
-	userID, ok := userIDInterface.(uuid.UUID)
+// UploadAvatar handles uploading a user avatar
+func (c *UserController) UploadAvatar(ctx *gin.Context) {
+	userID, ok := c.getUserIDFromContext(ctx)
 	if !ok {
-		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrInvalidUserID)
+		httpPkg.RespondError(ctx, http.StatusUnauthorized, constants.ErrUnauthorized)
 		return
 	}
 
-	user, err := services.GetUserByID(userID)
+	// Use the file upload service to validate and upload the file
+	avatarURL, err := c.uploadService.ValidateAndUploadFile(ctx, "avatar", upload.UserAvatar, constants.MaxAvatarFileSize)
 	if err != nil {
-		httpPkg.RespondError(c, http.StatusNotFound, constants.ErrUserNotFound)
+		if err.Error() == constants.ErrLogoTooLarge ||
+			err.Error() == constants.ErrFileUploadRequired ||
+			err.Error() == constants.ErrInvalidFileType {
+			httpPkg.RespondError(ctx, http.StatusBadRequest, err.Error())
+			return
+		}
+		logger.Error("Avatar upload failed", zap.Error(err))
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, constants.ErrUploadFailed)
 		return
 	}
 
-	fileHeader, err := c.FormFile("avatar")
+	// Update the user's avatar URL in the database
+	user, err := c.userService.GetUserByID(userID)
 	if err != nil {
-		httpPkg.RespondError(c, http.StatusBadRequest, "Avatar file is required")
-		return
-	}
-
-	const maxAvatarSize = 2 * 1024 * 1024
-	if fileHeader.Size > maxAvatarSize {
-		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrAvatarTooLarge)
-		return
-	}
-
-	ext := filepath.Ext(fileHeader.Filename)
-	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
-		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidFileType)
-		return
-	}
-
-	src, err := fileHeader.Open()
-	if err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrUploadFailed)
-		return
-	}
-	defer src.Close()
-
-	newFileName := uuid.New().String() + ext
-	objectKey := fmt.Sprintf("avatars/%s", newFileName)
-
-	contentType := fileHeader.Header.Get("Content-Type")
-
-	avatarURL, err := storage.UploadFileToS3(src, objectKey, contentType)
-	if err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrUploadFailed)
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	user.Avatar = avatarURL
-	if err := services.UpdateUser(user); err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
+	if err := c.userService.UpdateUser(user); err != nil {
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	httpPkg.RespondSuccess(c, http.StatusOK, gin.H{"avatar_url": avatarURL}, constants.MsgAvatarUploaded)
+	cloudFrontAvatarURL := fmt.Sprintf("https://%s/avatars/%s", config.AssetCloudFrontDomain, avatarURL)
+	httpPkg.RespondSuccess(ctx, http.StatusOK, gin.H{"avatar_url": cloudFrontAvatarURL}, constants.MsgAvatarUploaded)
 }
 
-func GetAllUsers(c *gin.Context) {
-	pageStr := c.DefaultQuery("page", "1")
-	limitStr := c.DefaultQuery("limit", "10")
+// GetAllUsers handles retrieving all users with pagination
+func (c *UserController) GetAllUsers(ctx *gin.Context) {
+	pageStr := ctx.DefaultQuery("page", "1")
+	limitStr := ctx.DefaultQuery("limit", "10")
 
 	page, _ := strconv.Atoi(pageStr)
 	limit, _ := strconv.Atoi(limitStr)
 
-	users, total, err := services.GetUsersWithPagination(page, limit)
+	users, total, err := c.userService.GetUsersWithPagination(page, limit)
 	if err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	var userResponses []dto.UserResponse
 	for _, user := range users {
+		// Get all permissions (combines role permissions with extra permissions)
+		allPermissions := auth.GetAllPermissions(&user)
+
+		// Convert StringArray to []string for the DTO
+		extraPermissions := []string{} // Initialize as empty array instead of nil/null
+		if user.ExtraPermissions != nil {
+			extraPermissions = []string(user.ExtraPermissions)
+		}
+
 		userResponses = append(userResponses, dto.UserResponse{
-			ID:        user.ID,
-			Username:  user.Username,
-			Email:     user.Email,
-			Gender:    string(user.Gender),
-			AvatarURL: user.Avatar,
-			Role:      string(user.Role),
-			CreatedAt: user.CreatedAt.Format(time.RFC3339),
-			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+			ID:               user.ID,
+			Username:         user.Username,
+			Email:            user.Email,
+			Gender:           string(user.Gender),
+			AvatarURL:        fmt.Sprintf("https://%s/avatars/%s", config.AssetCloudFrontDomain, user.Avatar),
+			Role:             string(user.Role),
+			Permissions:      allPermissions,
+			ExtraPermissions: extraPermissions,
+			CreatedAt:        user.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:        user.UpdatedAt.Format(time.RFC3339),
 		})
 	}
 
 	totalPages := (int(total) + limit - 1) / limit
 
-	httpPkg.RespondSuccess(c, http.StatusOK, gin.H{
+	httpPkg.RespondSuccess(ctx, http.StatusOK, gin.H{
 		"users":        userResponses,
 		"total_users":  total,
 		"total_pages":  totalPages,
@@ -257,57 +219,42 @@ func GetAllUsers(c *gin.Context) {
 	}, constants.MsgUsersFetched)
 }
 
-func UpdateUserProfile(c *gin.Context) {
-	userIDParam := c.Param("id")
+// UpdateUserProfile handles updating a specific user profile (admin or self)
+func (c *UserController) UpdateUserProfile(ctx *gin.Context) {
+	userIDParam := ctx.Param("id")
 	targetUserID, err := uuid.Parse(userIDParam)
 	if err != nil {
-		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidUserID)
+		httpPkg.RespondError(ctx, http.StatusBadRequest, constants.ErrInvalidUserID)
 		return
 	}
 
-	var input struct {
-		Username string `json:"username" binding:"omitempty,min=3,max=20"`
-		Email    string `json:"email" binding:"omitempty,email"`
-	}
-	if err := c.ShouldBindJSON(&input); err != nil {
-		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
+	var input dto.UpdateUserInput
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		httpPkg.RespondError(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	user, err := services.GetUserByID(targetUserID)
-	if err != nil {
-		httpPkg.RespondError(c, http.StatusNotFound, constants.ErrUserNotFound)
+	if err := c.userService.UpdateUserProfile(targetUserID, input); err != nil {
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, constants.ErrDatabase)
 		return
 	}
 
-	if input.Username != "" {
-		user.Username = input.Username
-	}
-	if input.Email != "" {
-		user.Email = input.Email
-	}
-
-	if err := services.UpdateUser(user); err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrDatabase)
-		return
-	}
-
-	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgUserUpdated)
+	httpPkg.RespondSuccess(ctx, http.StatusOK, nil, constants.MsgUserUpdated)
 }
 
-func DeleteUserAccount(c *gin.Context) {
-	userIDParam := c.Param("id")
+// DeleteUserAccount handles deleting a specific user account (admin or self)
+func (c *UserController) DeleteUserAccount(ctx *gin.Context) {
+	userIDParam := ctx.Param("id")
 	targetUserID, err := uuid.Parse(userIDParam)
 	if err != nil {
-		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidUserID)
+		httpPkg.RespondError(ctx, http.StatusBadRequest, constants.ErrInvalidUserID)
 		return
 	}
 
-	err = services.DeleteUserByID(targetUserID)
-	if err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrDatabase)
+	if err := c.userService.DeleteUserProfile(targetUserID); err != nil {
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, constants.ErrDatabase)
 		return
 	}
 
-	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgUserDeleted)
+	httpPkg.RespondSuccess(ctx, http.StatusOK, nil, constants.MsgUserDeleted)
 }

@@ -29,7 +29,7 @@ func ConnectDB() {
 
 	// db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	pgConn := postgres.New(postgres.Config{
-		DSN:									dsn,
+		DSN:                  dsn,
 		PreferSimpleProtocol: true,
 	})
 

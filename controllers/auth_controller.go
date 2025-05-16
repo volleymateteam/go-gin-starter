@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"crypto/rand"
-	"encoding/hex"
+	"fmt"
+	"go-gin-starter/config"
 	"go-gin-starter/dto"
-	authPkg "go-gin-starter/pkg/auth"
+	"go-gin-starter/pkg/auth"
 	"go-gin-starter/pkg/constants"
 	httpPkg "go-gin-starter/pkg/http"
 	"go-gin-starter/services"
@@ -14,157 +14,122 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Register(c *gin.Context) {
-	var input dto.RegisterInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if !authPkg.IsStrongPassword(input.Password) {
-		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrStrongPassword)
-		return
-	}
-
-	user, err := services.CreateUser(input.Username, input.Email, input.Password, input.Gender)
-	if err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	response := dto.UserResponse{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		Gender:    string(user.Gender),
-		AvatarURL: "/uploads/avatars/" + user.Avatar, // have to be FIXED
-		Role:      string(user.Role),
-		CreatedAt: user.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
-	}
-	httpPkg.RespondSuccess(c, http.StatusCreated, response, constants.MsgUserRegistered)
+// AuthController handles authentication-related HTTP requests
+type AuthController struct {
+	authService services.AuthService
 }
 
-func Login(c *gin.Context) {
+// NewAuthController creates a new instance of AuthController
+func NewAuthController(authService services.AuthService) *AuthController {
+	return &AuthController{
+		authService: authService,
+	}
+}
+
+// Register handles user registration
+func (c *AuthController) Register(ctx *gin.Context) {
+	var input dto.RegisterInput
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		httpPkg.RespondError(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	user, err := c.authService.Register(input.Username, input.Email, input.Password, input.Gender)
+	if err != nil {
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Get all permissions (combines role permissions with extra permissions)
+	allPermissions := auth.GetAllPermissions(user)
+
+	response := dto.UserResponse{
+		ID:               user.ID,
+		Username:         user.Username,
+		Email:            user.Email,
+		Gender:           string(user.Gender),
+		AvatarURL:        fmt.Sprintf("https://%s/avatars/%s", config.AssetCloudFrontDomain, user.Avatar),
+		Role:             string(user.Role),
+		Permissions:      allPermissions,
+		ExtraPermissions: []string{}, // New users have no extra permissions
+		CreatedAt:        user.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:        user.UpdatedAt.Format(time.RFC3339),
+	}
+	httpPkg.RespondSuccess(ctx, http.StatusCreated, response, constants.MsgUserRegistered)
+}
+
+// Login handles user authentication
+func (c *AuthController) Login(ctx *gin.Context) {
 	var input dto.LoginInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidCredentials)
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		httpPkg.RespondError(ctx, http.StatusBadRequest, constants.ErrInvalidCredentials)
 		return
 	}
 
-	user, err := services.GetUserByEmail(input.Email)
-	if err != nil || !authPkg.CheckPasswordHash(input.Password, user.Password) {
-		httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrInvalidCredentials)
-		return
-	}
-
-	accessToken, err := authPkg.GenerateJWT(user.ID)
+	accessToken, refreshToken, err := c.authService.Login(input.Email, input.Password)
 	if err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrTokenGenerationFailed)
+		httpPkg.RespondError(ctx, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	refreshToken, err := authPkg.GenerateSecureToken(32)
-	if err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, "failed to generate refresh token")
-		return
-	}
-	refreshExpiry := time.Now().Add(7 * 24 * time.Hour)
-
-	err = services.UpdateRefreshToken(user.ID, refreshToken, refreshExpiry)
-	if err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, "failed to save refresh token")
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
+	ctx.JSON(http.StatusOK, gin.H{
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 	})
 }
 
-func RefreshToken(c *gin.Context) {
+// RefreshToken handles token refresh
+func (c *AuthController) RefreshToken(ctx *gin.Context) {
 	var input struct {
 		RefreshToken string `json:"refresh_token" binding:"required"`
 	}
-	if err := c.ShouldBindJSON(&input); err != nil {
-		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrInvalidToken)
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		httpPkg.RespondError(ctx, http.StatusBadRequest, constants.ErrInvalidToken)
 		return
 	}
 
-	user, err := services.GetUserByRefreshToken(input.RefreshToken)
-	if err != nil || user.RefreshTokenExpiry.Before(time.Now()) {
-		httpPkg.RespondError(c, http.StatusUnauthorized, constants.ErrInvalidToken)
-		return
-	}
-
-	// Generate new access token
-	accessToken, err := authPkg.GenerateJWT(user.ID)
+	accessToken, refreshToken, err := c.authService.RefreshToken(input.RefreshToken)
 	if err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrTokenGenerationFailed)
+		httpPkg.RespondError(ctx, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	// (Optional) rotate refresh token
-	newRefreshToken, err := authPkg.GenerateSecureToken(32)
-	if err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, "failed to generate refresh token")
-		return
-	}
-	newExpiry := time.Now().Add(7 * 24 * time.Hour)
-
-	if err := services.UpdateRefreshToken(user.ID, newRefreshToken, newExpiry); err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, "failed to update refresh token")
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
+	ctx.JSON(http.StatusOK, gin.H{
 		"access_token":  accessToken,
-		"refresh_token": newRefreshToken,
+		"refresh_token": refreshToken,
 	})
 }
 
-func ForgotPassword(c *gin.Context) {
+// ForgotPassword handles password reset requests
+func (c *AuthController) ForgotPassword(ctx *gin.Context) {
 	var input dto.ForgotPasswordInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		httpPkg.RespondError(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
-		httpPkg.RespondError(c, http.StatusInternalServerError, constants.ErrResetTokenFailed)
-		return
-	}
-	resetToken := hex.EncodeToString(b)
-	expiry := time.Now().Add(15 * time.Minute)
-
-	err := services.UpdateResetToken(input.Email, resetToken, expiry)
+	resetToken, err := c.authService.ForgotPassword(input.Email)
 	if err != nil {
-		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
+		httpPkg.RespondError(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	httpPkg.RespondSuccess(c, http.StatusOK, gin.H{"reset_token": resetToken}, constants.MsgResetTokenCreated)
+	httpPkg.RespondSuccess(ctx, http.StatusOK, gin.H{"reset_token": resetToken}, constants.MsgResetTokenCreated)
 }
 
-func ResetPassword(c *gin.Context) {
+// ResetPassword handles password reset using a token
+func (c *AuthController) ResetPassword(ctx *gin.Context) {
 	var input dto.ResetPasswordInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		httpPkg.RespondError(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if !authPkg.IsStrongPassword(input.NewPassword) {
-		httpPkg.RespondError(c, http.StatusBadRequest, constants.ErrStrongPassword)
-		return
-	}
-
-	err := services.ResetUserPassword(input.Token, input.NewPassword)
+	err := c.authService.ResetPassword(input.Token, input.NewPassword)
 	if err != nil {
-		httpPkg.RespondError(c, http.StatusBadRequest, err.Error())
+		httpPkg.RespondError(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgPasswordReset)
+	httpPkg.RespondSuccess(ctx, http.StatusOK, nil, constants.MsgPasswordReset)
 }

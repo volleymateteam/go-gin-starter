@@ -1,9 +1,11 @@
 package http
 
 import (
+	"fmt"
+	"go-gin-starter/config"
 	"go-gin-starter/dto"
-	auth "go-gin-starter/pkg/auth"
 	"go-gin-starter/models"
+	auth "go-gin-starter/pkg/auth"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,7 +18,7 @@ func BuildAdminUserResponse(user *models.User) dto.AdminUserResponse {
 		Email:     user.Email,
 		Gender:    user.Gender,
 		Role:      user.Role,
-		AvatarURL: "/uploads/avatars/" + user.Avatar,
+		AvatarURL: fmt.Sprintf("https://%s/avatars/%s", config.AssetCloudFrontDomain, user.Avatar),
 		CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
 		UpdatedAt: user.UpdatedAt.Format("2006-01-02 15:04:05"),
 	}
@@ -58,9 +60,9 @@ func BuildUserResetPermissionsResponse(user *models.User, emptyPermissions []str
 
 // BuildTeamResponse builds TeamResponse DTO from Team model
 func BuildTeamResponse(team *models.Team) dto.TeamResponse {
-	logoPath := "/uploads/logos/defaults/default-team-logo.png"
+	logo := "defaults/default-team-logo.png"
 	if team.Logo != "" {
-		logoPath = "/uploads/logos/" + team.Logo
+		logo = team.Logo
 	}
 
 	return dto.TeamResponse{
@@ -68,7 +70,7 @@ func BuildTeamResponse(team *models.Team) dto.TeamResponse {
 		Name:      team.Name,
 		Country:   team.Country,
 		SeasonID:  team.SeasonID,
-		LogoURL:   logoPath,
+		LogoURL:   fmt.Sprintf("https://%s/logos/teams/%s", config.AssetCloudFrontDomain, logo),
 		CreatedAt: team.CreatedAt,
 		UpdatedAt: team.UpdatedAt,
 	}

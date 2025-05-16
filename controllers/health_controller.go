@@ -12,16 +12,26 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// HealthController handles health check related HTTP requests
+type HealthController struct {
+	// Can be expanded later if needed with service dependencies
+}
+
+// NewHealthController creates a new instance of HealthController
+func NewHealthController() *HealthController {
+	return &HealthController{}
+}
+
 // HealthCheck provides basic health status
-func HealthCheck(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
+func (c *HealthController) HealthCheck(ctx *gin.Context) {
+	ctx.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 		"time":   time.Now().Format(time.RFC3339),
 	})
 }
 
 // DetailedHealthCheck provides comprehensive system health information
-func DetailedHealthCheck(c *gin.Context) {
+func (c *HealthController) DetailedHealthCheck(ctx *gin.Context) {
 	// Check database connection
 	dbStatus := "ok"
 	dbLatency := time.Duration(0)
@@ -78,30 +88,56 @@ func DetailedHealthCheck(c *gin.Context) {
 		healthData["status"] = "degraded"
 	}
 
-	c.JSON(http.StatusOK, healthData)
+	ctx.JSON(http.StatusOK, healthData)
 }
 
 // LivenessCheck for kubernetes liveness probe
-func LivenessCheck(c *gin.Context) {
+func (c *HealthController) LivenessCheck(ctx *gin.Context) {
 	// Only check if server is running
-	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgHealthy)
+	httpPkg.RespondSuccess(ctx, http.StatusOK, nil, constants.MsgHealthy)
 }
 
 // ReadinessCheck for kubernetes readiness probe
-func ReadinessCheck(c *gin.Context) {
+func (c *HealthController) ReadinessCheck(ctx *gin.Context) {
 	// Check if application can handle traffic by testing DB connection
 	sqlDB, err := database.DB.DB()
 	if err != nil {
-		httpPkg.RespondError(c, http.StatusServiceUnavailable, constants.ErrDatabaseConnection)
+		httpPkg.RespondError(ctx, http.StatusServiceUnavailable, constants.ErrDatabaseConnection)
 		return
 	}
 
 	// Ping database with timeout
 	err = sqlDB.Ping()
 	if err != nil {
-		httpPkg.RespondError(c, http.StatusServiceUnavailable, constants.ErrDatabaseConnection)
+		httpPkg.RespondError(ctx, http.StatusServiceUnavailable, constants.ErrDatabaseConnection)
 		return
 	}
 
-	httpPkg.RespondSuccess(c, http.StatusOK, nil, constants.MsgHealthy)
+	httpPkg.RespondSuccess(ctx, http.StatusOK, nil, constants.MsgHealthy)
+}
+
+// Legacy global functions for backward compatibility
+
+// HealthCheck provides basic health status
+func HealthCheck(c *gin.Context) {
+	controller := NewHealthController()
+	controller.HealthCheck(c)
+}
+
+// DetailedHealthCheck provides comprehensive system health information
+func DetailedHealthCheck(c *gin.Context) {
+	controller := NewHealthController()
+	controller.DetailedHealthCheck(c)
+}
+
+// LivenessCheck for kubernetes liveness probe
+func LivenessCheck(c *gin.Context) {
+	controller := NewHealthController()
+	controller.LivenessCheck(c)
+}
+
+// ReadinessCheck for kubernetes readiness probe
+func ReadinessCheck(c *gin.Context) {
+	controller := NewHealthController()
+	controller.ReadinessCheck(c)
 }
