@@ -10,6 +10,7 @@ import (
 	"go-gin-starter/pkg/upload"
 	"go-gin-starter/repositories"
 	"mime/multipart"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -92,6 +93,7 @@ func (s *SeasonServiceImpl) GetAllSeasons() ([]dto.SeasonResponse, error) {
 			SeasonYear: season.SeasonYear,
 			StartDate:  season.StartDate,
 			EndDate:    season.EndDate,
+			Round:      season.Round,
 			LogoURL:    fmt.Sprintf("https://%s/logos/seasons/%s", config.AssetCloudFrontDomain, season.Logo),
 			CreatedAt:  season.CreatedAt,
 			UpdatedAt:  season.UpdatedAt,
@@ -187,7 +189,11 @@ func (s *SeasonServiceImpl) UpdateSeasonLogo(seasonID uuid.UUID, logoFilename st
 		return errors.New(constants.ErrSeasonNotFound)
 	}
 
-	season.Logo = logoFilename
+	// Extract just the filename from the full URL
+	parts := strings.Split(logoFilename, "/")
+	filename := parts[len(parts)-1]
+
+	season.Logo = filename
 	return s.seasonRepo.Update(season)
 }
 
