@@ -18,28 +18,49 @@ To document the setup and usage of AWS CloudFront with our S3 buckets for return
 
 ---
 
-## �� S3 Bucket Policy
+## 🔍 Verifying CloudFront Setup
+
+### 1. Environment Variables
+
+```bash
+# Check in running service
+sudo systemctl show -p Environment volleymate-backend.service
+
+# Should show all CloudFront domains:
+- SCOUT_CLOUDFRONT_DOMAIN
+- VIDEO_CLOUDFRONT_DOMAIN
+- ASSET_CLOUDFRONT_DOMAIN
+```
+
+### 2. URL Construction
+
+- Scout files: `https://{SCOUT_CLOUDFRONT_DOMAIN}/scout-files/{file_id}.json`
+- Videos: `https://{VIDEO_CLOUDFRONT_DOMAIN}/videos/{path}`
+- Assets: `https://{ASSET_CLOUDFRONT_DOMAIN}/{asset_type}/{file}`
+
+### 3. Testing URLs
+
+1. Scout Files:
+   ```bash
+   curl -I https://d1b5o37qbj029k.cloudfront.net/scout-files/example.json
+   ```
+2. Videos:
+   ```bash
+   curl -I https://d2qk7473q3y7pg.cloudfront.net/videos/example.mp4
+   ```
+
+---
+
+## S3 Bucket Policy
 
 Bucket: `volleymate-storage`
 
+Current bucket policy with detailed access control for different asset types:
+
 ```json
 {
-  "Version": "2012-10-17",
+  "Version": "2008-10-17",
   "Statement": [
-    {
-      "Sid": "AllowCloudFrontForScoutFiles",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "cloudfront.amazonaws.com"
-      },
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::volleymate-storage/*",
-      "Condition": {
-        "StringEquals": {
-          "AWS:SourceArn": "arn:aws:cloudfront::863518411349:distribution/E2I1LDQ5PKDKHX"
-        }
-      }
-    },
     {
       "Sid": "AllowCloudFrontForVideos",
       "Effect": "Allow",
@@ -53,10 +74,53 @@ Bucket: `volleymate-storage`
           "AWS:SourceArn": "arn:aws:cloudfront::863518411349:distribution/E1WV6L56OFBZ8E"
         }
       }
+    },
+    {
+      "Sid": "AllowCloudFrontForAssets",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "cloudfront.amazonaws.com"
+      },
+      "Action": "s3:GetObject",
+      "Resource": [
+        "arn:aws:s3:::volleymate-storage/scout-files/*",
+        "arn:aws:s3:::volleymate-storage/avatars/*",
+        "arn:aws:s3:::volleymate-storage/logos/*",
+        "arn:aws:s3:::volleymate-storage/logos/seasons/*",
+        "arn:aws:s3:::volleymate-storage/logos/seasons/defaults/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "AWS:SourceArn": "arn:aws:cloudfront::863518411349:distribution/E2I1LDQ5PKDKHX"
+        }
+      }
     }
   ]
 }
 ```
+
+### Policy Breakdown
+
+1. **Video Distribution** (`E1WV6L56OFBZ8E`):
+
+   - Handles all match videos
+   - Path pattern: `/videos/*`
+   - Uses dedicated CloudFront distribution for video content
+
+2. **Asset Distribution** (`E2I1LDQ5PKDKHX`):
+   - Handles multiple asset types:
+     - Scout files: `/scout-files/*`
+     - User avatars: `/avatars/*`
+     - Team/Club logos: `/logos/*`
+     - Season logos: `/logos/seasons/*`
+     - Default season logos: `/logos/seasons/defaults/*`
+   - Uses shared CloudFront distribution for all static assets
+
+### Security Notes
+
+- Each CloudFront distribution has its own IAM conditions
+- Access is strictly controlled by path patterns
+- No direct S3 access is allowed; all requests must go through CloudFront
 
 ---
 

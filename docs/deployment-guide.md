@@ -13,6 +13,10 @@ go build -o volleymate-backend main.go
 
 `/etc/systemd/system/volleymate-backend.service`
 
+There are two methods to configure environment variables:
+
+#### Method 1: Using EnvironmentFile (Recommended)
+
 ```ini
 [Unit]
 Description=Volleymate Go Backend
@@ -31,6 +35,28 @@ Environment=ENV=prod
 WantedBy=multi-user.target
 ```
 
+#### Method 2: Direct Environment Variables (Alternative)
+
+```ini
+[Unit]
+Description=Volleymate Go Backend
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/volleymate-backend-go
+Environment=SCOUT_CLOUDFRONT_DOMAIN=d1b5o37qbj029k.cloudfront.net
+Environment=VIDEO_CLOUDFRONT_DOMAIN=d2qk7473q3y7pg.cloudfront.net
+Environment=ASSET_CLOUDFRONT_DOMAIN=d1b5o37qbj029k.cloudfront.net
+Environment=ENV=prod
+ExecStart=/home/ubuntu/volleymate-backend-go/volleymate-backend
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+```
+
 ### 3. Reload and Start
 
 ```bash
@@ -44,6 +70,26 @@ sudo systemctl start volleymate-backend.service
 ```bash
 curl http://localhost:8000/health
 ```
+
+### 5. Troubleshooting
+
+#### Environment Variables
+
+1. Verify environment variables are loaded:
+
+   ```bash
+   sudo systemctl show -p Environment volleymate-backend.service
+   ```
+
+2. If variables aren't loading from EnvironmentFile:
+   - Check file permissions: `sudo chmod 644 .env.prod`
+   - Or use Method 2 with direct Environment variables in service file
+
+#### Common Issues
+
+- "no Host in request URL": Check CloudFront domain environment variables
+- Service not starting: Check logs with `sudo journalctl -u volleymate-backend.service`
+- Environment variables not loading: Verify .env.prod file exists and has correct permissions
 
 ---
 
