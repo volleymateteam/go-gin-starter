@@ -9,13 +9,7 @@ cd ~/volleymate-backend-go
 go build -o volleymate-backend main.go
 ```
 
-### 2. Set Environment File
-
-```bash
-cp .env.prod .env
-```
-
-### 3. Configure systemd
+### 2. Configure systemd
 
 `/etc/systemd/system/volleymate-backend.service`
 
@@ -28,7 +22,7 @@ After=network.target
 User=ubuntu
 WorkingDirectory=/home/ubuntu/volleymate-backend-go
 ExecStart=/home/ubuntu/volleymate-backend-go/volleymate-backend
-EnvironmentFile=/home/ubuntu/volleymate-backend-go/.env
+EnvironmentFile=/home/ubuntu/volleymate-backend-go/.env.prod
 Restart=always
 RestartSec=3
 Environment=ENV=prod
@@ -37,7 +31,7 @@ Environment=ENV=prod
 WantedBy=multi-user.target
 ```
 
-### 4. Reload and Start
+### 3. Reload and Start
 
 ```bash
 sudo systemctl daemon-reload
@@ -45,7 +39,7 @@ sudo systemctl enable volleymate-backend.service
 sudo systemctl start volleymate-backend.service
 ```
 
-### 5. Test
+### 4. Test
 
 ```bash
 curl http://localhost:8000/health
