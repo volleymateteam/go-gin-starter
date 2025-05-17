@@ -113,13 +113,29 @@ func UploadBytesToS3(data []byte, objectKey, contentType string) (string, error)
 		Key:         aws.String(objectKey),
 		Body:        bytes.NewReader(data),
 		ContentType: aws.String(contentType),
-		// ACL:         aws.String("public-read"),
 	})
 	if err != nil {
 		return "", err
 	}
 
-	// publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", awsBucket, awsRegion, objectKey)
-	publicURL := fmt.Sprintf("https://%s/%s", os.Getenv("CLOUDFRONT_DOMAIN"), objectKey)
+	// Determine CloudFront domain based on object type
+	var cloudFront string
+	switch {
+	case strings.HasPrefix(objectKey, "videos/"):
+		cloudFront = config.VideoCloudFrontDomain
+	case strings.HasPrefix(objectKey, "scout-files/"):
+		cloudFront = config.ScoutCloudFrontDomain
+	case strings.HasPrefix(objectKey, "avatars/") || strings.HasPrefix(objectKey, "logos/"):
+		cloudFront = config.AssetCloudFrontDomain
+	default:
+		cloudFront = config.AssetCloudFrontDomain // default to asset domain
+	}
+
+	if cloudFront == "" {
+		logger.Warn("CloudFront domain is empty", zap.String("objectType", objectKey))
+		return "", fmt.Errorf("CloudFront domain not configured for object type: %s", objectKey)
+	}
+
+	publicURL := fmt.Sprintf("https://%s/%s", cloudFront, objectKey)
 	return publicURL, nil
 }
