@@ -103,6 +103,7 @@ func SetupRoutes(router gin.IRouter) {
 		admin.PUT("/matches/:id", middleware.RequirePermission("manage_matches"), matchCtrl.UpdateMatch)
 		admin.DELETE("/matches/:id", middleware.RequirePermission("manage_matches"), matchCtrl.DeleteMatch)
 		admin.PATCH("/matches/:id/upload-video", middleware.RequirePermission("upload_video"), matchCtrl.UploadMatchVideo)
+		admin.GET("/matches/:id/scout/preview", middleware.RequirePermission("upload_scout"), matchCtrl.PreviewScoutMetadata)
 		admin.PATCH("/matches/:id/upload-scout", middleware.RequirePermission("upload_scout"), matchCtrl.UploadMatchScout)
 	}
 
