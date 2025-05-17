@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"fmt"
 	"go-gin-starter/dto"
 	"go-gin-starter/models"
 	"go-gin-starter/pkg/constants"
 	httpPkg "go-gin-starter/pkg/http"
+	scoutPkg "go-gin-starter/pkg/scout"
 	"go-gin-starter/services"
 	"net/http"
 
@@ -171,4 +173,33 @@ func (c *MatchController) UploadMatchScout(ctx *gin.Context) {
 	}
 
 	httpPkg.RespondSuccess(ctx, http.StatusOK, gin.H{"scout_url": jsonURL}, constants.MsgScoutUploaded)
+}
+
+// PreviewScoutMetadata handles GET /api/admin/matches/:id/scout/preview
+func (c *MatchController) PreviewScoutMetadata(ctx *gin.Context) {
+	matchID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		httpPkg.RespondError(ctx, http.StatusBadRequest, constants.ErrInvalidMatchID)
+		return
+	}
+
+	// Get match to verify it exists and get the scout URL
+	match, err := c.matchService.GetMatchByID(matchID)
+	if err != nil {
+		httpPkg.RespondError(ctx, http.StatusNotFound, constants.ErrMatchNotFound)
+		return
+	}
+
+	if match.ScoutJSON == "" {
+		httpPkg.RespondError(ctx, http.StatusNotFound, "No scout file found for this match")
+		return
+	}
+
+	metadata, err := scoutPkg.ExtractScoutMetadata(match.ScoutJSON)
+	if err != nil {
+		httpPkg.RespondError(ctx, http.StatusInternalServerError, fmt.Sprintf("failed to extract metadata: %v", err))
+		return
+	}
+
+	httpPkg.RespondSuccess(ctx, http.StatusOK, metadata, "scout metadata extracted successfully")
 }

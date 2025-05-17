@@ -13,11 +13,14 @@ import (
 	"go-gin-starter/dto"
 	"go-gin-starter/models"
 	"go-gin-starter/pkg/constants"
+	httpPkg "go-gin-starter/pkg/http"
+	"go-gin-starter/pkg/logger"
 	scoutPkg "go-gin-starter/pkg/scout"
 	storagePkg "go-gin-starter/pkg/storage"
 	"go-gin-starter/repositories"
 
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 // MatchService defines the interface for match-related business logic
@@ -297,7 +300,7 @@ func (s *MatchServiceImpl) UploadMatchScout(matchID uuid.UUID, file io.Reader, f
 		return "", fmt.Errorf("failed to marshal parsed data: %w", err)
 	}
 
-	// Upload parsed JSON to S3
+	// Upload parsed JSON to S3 using the scout CloudFront domain
 	s3OutputKey := fmt.Sprintf("scout-files/%s.json", matchID.String())
 	jsonURL, err := storagePkg.UploadBytesToS3(jsonBytes, s3OutputKey, "application/json")
 	if err != nil {
@@ -315,8 +318,18 @@ func (s *MatchServiceImpl) UploadMatchScout(matchID uuid.UUID, file io.Reader, f
 
 // Helper function to fetch JSON from S3
 func fetchJSONFromS3(url string) (map[string]interface{}, error) {
-	// This is a placeholder - you should implement this based on your actual S3 fetching code
-	return nil, nil
+	if url == "" {
+		return nil, nil
+	}
+
+	// Use the existing HTTP utility to fetch and parse JSON
+	jsonData, err := httpPkg.FetchJSONFromS3(url)
+	if err != nil {
+		logger.Error("Failed to fetch JSON from S3", zap.Error(err), zap.String("url", url))
+		return nil, err
+	}
+
+	return jsonData, nil
 }
 
 // Helper to format season name
