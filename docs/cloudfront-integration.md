@@ -41,10 +41,13 @@ sudo systemctl show -p Environment volleymate-backend.service
 ### 3. Testing URLs
 
 1. Scout Files:
+
    ```bash
    curl -I https://d1b5o37qbj029k.cloudfront.net/scout-files/example.json
    ```
+
 2. Videos:
+
    ```bash
    curl -I https://d2qk7473q3y7pg.cloudfront.net/videos/example.mp4
    ```

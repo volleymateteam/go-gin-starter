@@ -319,7 +319,7 @@ func (s *MatchServiceImpl) UploadMatchScout(matchID uuid.UUID, file io.Reader, f
 // Helper function to fetch JSON from S3
 func fetchJSONFromS3(url string) (map[string]interface{}, error) {
 	if url == "" {
-		return nil, nil
+	return nil, nil
 	}
 
 	// Use the existing HTTP utility to fetch and parse JSON
