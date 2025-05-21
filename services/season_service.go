@@ -93,7 +93,6 @@ func (s *SeasonServiceImpl) GetAllSeasons() ([]dto.SeasonResponse, error) {
 			SeasonYear: season.SeasonYear,
 			StartDate:  season.StartDate,
 			EndDate:    season.EndDate,
-			Round:      season.Round,
 			LogoURL:    fmt.Sprintf("https://%s/logos/seasons/%s", config.AssetCloudFrontDomain, season.Logo),
 			CreatedAt:  season.CreatedAt,
 			UpdatedAt:  season.UpdatedAt,
@@ -146,9 +145,6 @@ func (s *SeasonServiceImpl) UpdateSeason(id uuid.UUID, input *dto.UpdateSeasonIn
 	}
 	if input.SeasonYear != "" {
 		season.SeasonYear = input.SeasonYear
-	}
-	if input.Round != "" {
-		season.Round = input.Round
 	}
 	if input.StartDate != nil {
 		season.StartDate = input.StartDate
