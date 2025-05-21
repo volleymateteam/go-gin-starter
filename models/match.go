@@ -17,9 +17,10 @@ type Match struct {
 	Competition string     `gorm:"type:varchar(100);not null"`
 	Gender      GenderEnum `gorm:"type:varchar(10);not null"`
 
-	Location  string `gorm:"type:varchar(100)"`
-	VideoURL  string `gorm:"type:text"` // optional
-	ScoutJSON string `gorm:"type:text"` // optional
+	Location     string `gorm:"type:varchar(100)"`
+	VideoURL     string `gorm:"type:text"` // optional
+	ThumbnailURL string `gorm:"type:text"` // optional
+	ScoutJSON    string `gorm:"type:text"` // optional
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
