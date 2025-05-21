@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -227,7 +228,11 @@ func (s *MatchServiceImpl) DeleteMatch(id uuid.UUID) error {
 }
 
 // UploadMatchVideo handles uploading a match video to S3
-func (s *MatchServiceImpl) UploadMatchVideo(matchID uuid.UUID, file io.Reader, fileHeader *multipart.FileHeader) (string, error) {
+func (s *MatchServiceImpl) UploadMatchVideo(
+	matchID uuid.UUID,
+	file io.Reader,
+	fileHeader *multipart.FileHeader,
+) (string, error) {
 	match, err := s.matchRepo.GetByID(matchID)
 	if err != nil {
 		return "", errors.New(constants.ErrMatchNotFound)
@@ -267,7 +272,7 @@ func (s *MatchServiceImpl) UploadMatchVideo(matchID uuid.UUID, file io.Reader, f
 		return "", err
 	}
 
-	rawURL, err := storagePkg.UploadBytesToS3(buf.Bytes(), rawKey, fileHeader.Header.Get("Content-Type"))
+	_, err = storagePkg.UploadBytesToS3(buf.Bytes(), rawKey, fileHeader.Header.Get("Content-Type"))
 	if err != nil {
 		return "", err
 	}
@@ -283,21 +288,25 @@ func (s *MatchServiceImpl) UploadMatchVideo(matchID uuid.UUID, file io.Reader, f
 		logger.Error("Failed to enqueue video job",
 			zap.String("match_id", matchID.String()),
 			zap.Error(err))
-		// Don't return error here, as the raw video is already uploaded
 	}
 
-	// Update match with raw video URL for now
-	// The compressed URL will be updated once processing is complete
-	match.VideoURL = rawURL
+	// build CloudFront compressed video URL
+	compressedURL := fmt.Sprintf("https://%s/%s", os.Getenv("VIDEO_CLOUDFRONT_DOMAIN"), compressedKey)
+
+	// Save the compressed URL instead of raw URL
+	match.VideoURL = compressedURL
 	if err := s.matchRepo.Update(match); err != nil {
 		return "", err
 	}
 
-	return rawURL, nil
+	return compressedURL, nil
 }
 
 // UploadMatchScout handles uploading and processing a match scout file
-func (s *MatchServiceImpl) UploadMatchScout(matchID uuid.UUID, file io.Reader, fileHeader *multipart.FileHeader) (string, error) {
+func (s *MatchServiceImpl) UploadMatchScout(matchID uuid.UUID,
+	file io.Reader,
+	fileHeader *multipart.FileHeader,
+) (string, error) {
 	match, err := s.matchRepo.GetByID(matchID)
 	if err != nil {
 		return "", errors.New(constants.ErrMatchNotFound)
