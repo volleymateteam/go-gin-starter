@@ -73,6 +73,10 @@ func (s *MatchServiceImpl) CreateMatch(input *dto.CreateMatchInput) (*dto.MatchR
 		return nil, err
 	}
 
+	if !models.IsValidGender(match.Gender) {
+		return nil, errors.New(constants.ErrInvalidGender)
+	}
+
 	// Fetch related names
 	season, _ := s.seasonRepo.GetByID(match.SeasonID)
 	homeTeam, _ := s.teamRepo.GetByID(match.HomeTeamID)
