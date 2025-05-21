@@ -8,12 +8,11 @@ import (
 )
 
 type CreateMatchInput struct {
-	SeasonID   uuid.UUID         `json:"season_id" binding:"required"`
-	HomeTeamID uuid.UUID         `json:"home_team_id" binding:"required"`
-	AwayTeamID uuid.UUID         `json:"away_team_id" binding:"required"`
-	Round      models.RoundEnum  `json:"round" binding:"required"`
-	Gender     models.GenderEnum `json:"gender" binding:"required"`
-	Location   string            `json:"location" binding:"omitempty"`
+	SeasonID   uuid.UUID        `json:"season_id" binding:"required"`
+	HomeTeamID uuid.UUID        `json:"home_team_id" binding:"required"`
+	AwayTeamID uuid.UUID        `json:"away_team_id" binding:"required"`
+	Round      models.RoundEnum `json:"round" binding:"required"`
+	Location   string           `json:"location" binding:"omitempty"`
 }
 
 type UpdateMatchInput struct {

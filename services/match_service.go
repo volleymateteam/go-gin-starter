@@ -69,16 +69,19 @@ func (s *MatchServiceImpl) CreateMatch(input *dto.CreateMatchInput) (*dto.MatchR
 		Location:   input.Location,
 	}
 
+	season, err := s.seasonRepo.GetByID(match.SeasonID)
+	if err != nil {
+		return nil, errors.New("season not found")
+	}
+
+	match.Gender = season.Gender
+	match.Competition = string(season.Name)
+
 	if err := s.matchRepo.Create(&match); err != nil {
 		return nil, err
 	}
 
-	if !models.IsValidGender(match.Gender) {
-		return nil, errors.New(constants.ErrInvalidGender)
-	}
-
 	// Fetch related names
-	season, _ := s.seasonRepo.GetByID(match.SeasonID)
 	homeTeam, _ := s.teamRepo.GetByID(match.HomeTeamID)
 	awayTeam, _ := s.teamRepo.GetByID(match.AwayTeamID)
 
@@ -248,16 +251,22 @@ func (s *MatchServiceImpl) UploadMatchVideo(
 	}
 
 	// Create the folder structure
-	safeSeasonName := strings.ReplaceAll(string(season.Name), "/", "_")
-	safeCompetition := strings.ReplaceAll(strings.ToLower(match.Competition), " ", "_")
-	safeGender := strings.ToLower(string(match.Gender))
+	safeSeasonName := strings.ReplaceAll(strings.ToLower(string(season.Name)), " ", "_")
+	safeSeasonYear := strings.ReplaceAll(season.SeasonYear, "/", "_")
+	safeGender := strings.ToLower(string(season.Gender))
+	safeCountry := strings.ToLower(string(season.Country))
 
 	// Generate paths
-	basePath := fmt.Sprintf("videos/%s/%s_%s/%s",
+	basePath := fmt.Sprintf("videos/%s_%s/%s_%s/%s",
+		safeSeasonYear,
+		safeCountry,
 		safeSeasonName,
-		safeCompetition,
 		safeGender,
 		matchID.String())
+
+	logger.Info("Upload path",
+		zap.String("rawKey", basePath),
+		zap.String("compressedKey", basePath))
 
 	rawKey := fmt.Sprintf("%s/%s/%s%s",
 		basePath,
