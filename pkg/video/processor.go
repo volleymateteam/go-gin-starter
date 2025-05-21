@@ -10,6 +10,7 @@ import (
 	"go-gin-starter/pkg/logger"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"go.uber.org/zap"
@@ -24,11 +25,11 @@ type VideoProcessor struct {
 }
 
 // NewVideoProcessor creates a new video processor instance
-func NewVideoProcessor(s3Client *s3.S3, bucket string) *VideoProcessor {
+func NewVideoProcessor(sess *session.Session, s3Client *s3.S3, bucket string) *VideoProcessor {
 	return &VideoProcessor{
 		s3Client:   s3Client,
-		downloader: s3manager.NewDownloader(s3Client.Client),
-		uploader:   s3manager.NewUploader(s3Client.Client),
+		downloader: s3manager.NewDownloader(sess),
+		uploader:   s3manager.NewUploader(sess),
 		bucket:     bucket,
 	}
 }
@@ -143,11 +144,12 @@ func (p *VideoProcessor) uploadVideo(filePath, key string) error {
 	}
 	defer file.Close()
 
+	contentType := p.getContentType(filePath)
 	_, err = p.uploader.Upload(&s3manager.UploadInput{
 		Bucket:      aws.String(p.bucket),
 		Key:         aws.String(key),
 		Body:        file,
-		ContentType: p.getContentType(filePath),
+		ContentType: aws.String(contentType),
 	})
 	return err
 }

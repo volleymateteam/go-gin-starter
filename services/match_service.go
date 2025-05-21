@@ -17,6 +17,7 @@ import (
 	"go-gin-starter/pkg/logger"
 	scoutPkg "go-gin-starter/pkg/scout"
 	storagePkg "go-gin-starter/pkg/storage"
+	"go-gin-starter/pkg/video"
 	"go-gin-starter/repositories"
 
 	"github.com/google/uuid"
@@ -39,14 +40,21 @@ type MatchServiceImpl struct {
 	matchRepo  repositories.MatchRepository
 	teamRepo   repositories.TeamRepository
 	seasonRepo repositories.SeasonRepository
+	videoQueue *video.QueueManager
 }
 
 // NewMatchService creates a new instance of MatchService
-func NewMatchService(matchRepo repositories.MatchRepository, teamRepo repositories.TeamRepository, seasonRepo repositories.SeasonRepository) MatchService {
+func NewMatchService(
+	matchRepo repositories.MatchRepository,
+	teamRepo repositories.TeamRepository,
+	seasonRepo repositories.SeasonRepository,
+	videoQueue *video.QueueManager,
+) MatchService {
 	return &MatchServiceImpl{
 		matchRepo:  matchRepo,
 		teamRepo:   teamRepo,
 		seasonRepo: seasonRepo,
+		videoQueue: videoQueue,
 	}
 }
 
@@ -230,36 +238,62 @@ func (s *MatchServiceImpl) UploadMatchVideo(matchID uuid.UUID, file io.Reader, f
 		return "", errors.New(constants.ErrSeasonNotFound)
 	}
 
-	// Get file extension
-	ext := filepath.Ext(fileHeader.Filename)
-	if ext != ".mp4" && ext != ".mov" && ext != ".mkv" {
-		return "", fmt.Errorf("unsupported file type: %s", ext)
-	}
+	// Create the folder structure
+	safeSeasonName := strings.ReplaceAll(string(season.Name), "/", "_")
+	safeCompetition := strings.ReplaceAll(strings.ToLower(match.Competition), " ", "_")
+	safeGender := strings.ToLower(string(match.Gender))
 
-	// Read file into memory
+	// Generate paths
+	basePath := fmt.Sprintf("videos/%s/%s_%s/%s",
+		safeSeasonName,
+		safeCompetition,
+		safeGender,
+		matchID.String())
+
+	rawKey := fmt.Sprintf("%s/%s/%s%s",
+		basePath,
+		video.RawVideoFolder,
+		uuid.New().String(),
+		filepath.Ext(fileHeader.Filename))
+
+	compressedKey := fmt.Sprintf("%s/%s/%s.mp4",
+		basePath,
+		video.CompressedFolder,
+		uuid.New().String())
+
+	// Upload raw video to S3
 	buf := new(bytes.Buffer)
 	if _, err := io.Copy(buf, file); err != nil {
 		return "", err
 	}
 
-	// Create the S3 key/path
-	safeSeasonName := s.getSafeFileName(string(season.Name))
-	objectKey := fmt.Sprintf("videos/%s/%s%s", safeSeasonName, uuid.New().String(), ext)
-	contentType := fileHeader.Header.Get("Content-Type")
-
-	// Upload to S3
-	videoURL, err := storagePkg.UploadBytesToS3(buf.Bytes(), objectKey, contentType)
+	rawURL, err := storagePkg.UploadBytesToS3(buf.Bytes(), rawKey, fileHeader.Header.Get("Content-Type"))
 	if err != nil {
 		return "", err
 	}
 
-	// Update match record
-	match.VideoURL = videoURL
+	// Create and enqueue processing job
+	job := &video.VideoProcessingJob{
+		MatchID:   matchID.String(),
+		InputKey:  rawKey,
+		OutputKey: compressedKey,
+	}
+
+	if err := s.videoQueue.EnqueueVideo(job); err != nil {
+		logger.Error("Failed to enqueue video job",
+			zap.String("match_id", matchID.String()),
+			zap.Error(err))
+		// Don't return error here, as the raw video is already uploaded
+	}
+
+	// Update match with raw video URL for now
+	// The compressed URL will be updated once processing is complete
+	match.VideoURL = rawURL
 	if err := s.matchRepo.Update(match); err != nil {
 		return "", err
 	}
 
-	return videoURL, nil
+	return rawURL, nil
 }
 
 // UploadMatchScout handles uploading and processing a match scout file
@@ -319,7 +353,7 @@ func (s *MatchServiceImpl) UploadMatchScout(matchID uuid.UUID, file io.Reader, f
 // Helper function to fetch JSON from S3
 func fetchJSONFromS3(url string) (map[string]interface{}, error) {
 	if url == "" {
-	return nil, nil
+		return nil, nil
 	}
 
 	// Use the existing HTTP utility to fetch and parse JSON
@@ -346,9 +380,4 @@ func (s *MatchServiceImpl) getTeamName(team *models.Team) string {
 		return ""
 	}
 	return team.Name
-}
-
-func (s *MatchServiceImpl) getSafeFileName(name string) string {
-	// Replace spaces with underscores and convert to lowercase
-	return strings.ToLower(strings.ReplaceAll(name, " ", "_"))
 }

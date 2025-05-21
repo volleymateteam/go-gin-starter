@@ -49,6 +49,9 @@ const (
 	ErrRateLimitExceeded     = "rate limit exceeded"
 	ErrInvalidID             = "invalid ID"
 	ErrPasswordHashFailed    = "failed to hash password"
+	ErrVideoProcessing       = "failed to process video"
+	ErrInvalidFormat         = "invalid video format"
+	ErrQueueOperation        = "queue operation failed"
 )
 
 // Success messages
