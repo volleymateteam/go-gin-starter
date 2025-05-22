@@ -32,7 +32,6 @@ func UploadMatchVideoToS3(
 	safeCompetition := strings.ReplaceAll(strings.ToLower(competition), " ", "_")
 	safeCountry := strings.ToLower(country)
 	safeGender := strings.ToLower(gender)
-	// safeSeason := strings.ReplaceAll(seasonYear, "/", "-") // e.g., 2024-2025
 	safeSeason := strings.ReplaceAll(seasonYear, "/", "_")
 
 	key := fmt.Sprintf("videos/%s_%s/%s_%s/%s%s",
@@ -49,12 +48,15 @@ func UploadMatchVideoToS3(
 		mimeType = "binary/octet-stream" // fallback
 	}
 
+	// Define tage if raw video
+	tags := "storage=raw" // required for lifecycle transition
+
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket:      aws.String(config.AWSBucketName),
 		Key:         aws.String(key),
 		Body:        file,
 		ContentType: aws.String(mimeType),
-		// ACL:    aws.String("public-read"),
+		Tagging:     aws.String(tags),
 	})
 	if err != nil {
 		return "", err
