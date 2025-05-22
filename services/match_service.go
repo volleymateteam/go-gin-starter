@@ -160,23 +160,55 @@ func (s *MatchServiceImpl) GetMatchByID(id uuid.UUID) (*dto.MatchResponse, error
 		jsonData, _ = fetchJSONFromS3(match.ScoutJSON)
 	}
 
+	// Build base path for video formats
+	safeSeasonName := strings.ReplaceAll(strings.ToLower(string(season.Name)), " ", "_")
+	safeSeasonYear := strings.ReplaceAll(season.SeasonYear, "/", "_")
+	safeGender := strings.ToLower(string(season.Gender))
+	safeCountry := strings.ToLower(string(season.Country))
+	basePath := fmt.Sprintf("videos/%s_%s/%s_%s/%s",
+		safeSeasonYear,
+		safeCountry,
+		safeSeasonName,
+		safeGender,
+		match.ID.String(),
+	)
+
+	// Extarct filename from video_url to use in all formats
+	videoUUID := getVideoUUIDFromURL(match.VideoURL)
+
+	videoQualities := map[string]string{
+		"1080p": fmt.Sprintf("https://%s/%s/compressed/1080p/%s", os.Getenv("VIDEO_CLOUDFRONT_DOMAIN"), basePath, videoUUID),
+		"720p":  fmt.Sprintf("https://%s/%s/compressed/720p/%s", os.Getenv("VIDEO_CLOUDFRONT_DOMAIN"), basePath, videoUUID),
+		"480p":  fmt.Sprintf("https://%s/%s/compressed/480p/%s", os.Getenv("VIDEO_CLOUDFRONT_DOMAIN"), basePath, videoUUID),
+	}
+
 	return &dto.MatchResponse{
-		ID:           match.ID,
-		SeasonID:     match.SeasonID,
-		SeasonName:   s.getSeasonName(season),
-		HomeTeamID:   match.HomeTeamID,
-		HomeTeamName: s.getTeamName(homeTeam),
-		AwayTeamID:   match.AwayTeamID,
-		AwayTeamName: s.getTeamName(awayTeam),
-		Round:        match.Round,
-		Location:     match.Location,
-		VideoURL:     match.VideoURL,
-		ThumbnailURL: match.ThumbnailURL,
-		ScoutJSON:    match.ScoutJSON,
-		JsonData:     jsonData,
-		CreatedAt:    match.CreatedAt,
-		UpdatedAt:    match.UpdatedAt,
+		ID:             match.ID,
+		SeasonID:       match.SeasonID,
+		SeasonName:     s.getSeasonName(season),
+		HomeTeamID:     match.HomeTeamID,
+		HomeTeamName:   s.getTeamName(homeTeam),
+		AwayTeamID:     match.AwayTeamID,
+		AwayTeamName:   s.getTeamName(awayTeam),
+		Round:          match.Round,
+		Location:       match.Location,
+		VideoURL:       match.VideoURL,
+		VideoQualities: videoQualities,
+		ThumbnailURL:   match.ThumbnailURL,
+		ScoutJSON:      match.ScoutJSON,
+		JsonData:       jsonData,
+		CreatedAt:      match.CreatedAt,
+		UpdatedAt:      match.UpdatedAt,
 	}, nil
+}
+
+// getVideoUUIDFromURL extracts the final part of the URL (filename with .mp4)
+func getVideoUUIDFromURL(url string) string {
+	parts := strings.Split(url, "/")
+	if len(parts) == 0 {
+		return ""
+	}
+	return parts[len(parts)-1]
 }
 
 // UpdateMatch updates an existing match
