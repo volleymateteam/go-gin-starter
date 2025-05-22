@@ -76,9 +76,13 @@ func (p *VideoProcessor) ProcessVideo(job *VideoProcessingJob) (string, error) {
 	thumbnailPath := filepath.Join(tempDir, "thumbnail.jpg")
 	var thumbnailURL string
 
+	logger.Info("generating thumbnail", zap.String("input_path", inputPath))
+
 	if err := p.generateThumbnail(inputPath, thumbnailPath); err != nil {
 		logger.Error("Failed to generate thumbnail", zap.Error(err))
 	} else {
+		logger.Info("thumbnail generated", zap.String("thumbnail_path", thumbnailPath))
+
 		thumbnailKey := strings.Replace(job.OutputKey, "compressed/", "thumbnails/", 1)
 		thumbnailKey = strings.TrimSuffix(thumbnailKey, filepath.Ext(thumbnailKey)) + ".jpg"
 
@@ -86,6 +90,7 @@ func (p *VideoProcessor) ProcessVideo(job *VideoProcessingJob) (string, error) {
 			logger.Error("Failed to upload thumbnail", zap.Error(err))
 		} else {
 			thumbnailURL = fmt.Sprintf("https://%s/%s", os.Getenv("VIDEO_CLOUDFRONT_DOMAIN"), thumbnailKey)
+			logger.Info("thumbnail uploaded successfully", zap.String("url", thumbnailURL))
 		}
 	}
 
