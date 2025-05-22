@@ -171,6 +171,7 @@ func (s *MatchServiceImpl) GetMatchByID(id uuid.UUID) (*dto.MatchResponse, error
 		Round:        match.Round,
 		Location:     match.Location,
 		VideoURL:     match.VideoURL,
+		ThumbnailURL: match.ThumbnailURL,
 		ScoutJSON:    match.ScoutJSON,
 		JsonData:     jsonData,
 		CreatedAt:    match.CreatedAt,

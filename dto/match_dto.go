@@ -35,6 +35,7 @@ type MatchResponse struct {
 	Round        models.RoundEnum `json:"round"`
 	Location     string           `json:"location"`
 	VideoURL     string           `json:"video_url"`
+	ThumbnailURL string           `json:"thumbnail_url"`
 	ScoutJSON    string           `json:"scout_json_url"`
 	JsonData     interface{}      `json:"json_data"`
 	// JsonData     map[string]interface{} `json:"json_data"`
