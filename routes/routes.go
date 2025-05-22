@@ -21,7 +21,6 @@ func SetupRoutes(router gin.IRouter) {
 	matchCtrl := container.MatchController
 	seasonCtrl := container.SeasonController
 	healthCtrl := container.HealthController
-	testCtrl := container.TestController
 
 	// Health check routes
 	router.GET("/health", healthCtrl.HealthCheck)
@@ -36,7 +35,6 @@ func SetupRoutes(router gin.IRouter) {
 	router.POST("/password/forgot", authCtrl.ForgotPassword)
 	router.POST("/password/reset", authCtrl.ResetPassword)
 	router.POST("/waitlist/submit", waitlistCtrl.SubmitWaitlist)
-	router.POST("/test-enqueue", testCtrl.EnqueueTestJob)
 
 	// Authenticated Routes (JWT required)
 	auth := router.Group("/")

@@ -26,7 +26,6 @@ type Container struct {
 	MatchController                *controllers.MatchController
 	SeasonController               *controllers.SeasonController
 	HealthController               *controllers.HealthController
-	TestController                 *controllers.TestController
 	// Add other controllers here as needed
 }
 
@@ -83,7 +82,6 @@ func NewContainer() *Container {
 	matchController := controllers.NewMatchController(matchService)
 	seasonController := controllers.NewSeasonController(seasonService, uploadService)
 	healthController := controllers.NewHealthController()
-	testController := controllers.NewTestController(videoQueue)
 
 	return &Container{
 		UserController:                 userController,
@@ -96,7 +94,6 @@ func NewContainer() *Container {
 		MatchController:                matchController,
 		SeasonController:               seasonController,
 		HealthController:               healthController,
-		TestController:                 testController,
 		// Add other controllers here as needed
 	}
 }
