@@ -7,7 +7,7 @@ const (
 	ErrInvalidCredentials    = "invalid email or password"
 	ErrUserNotFound          = "user not found"
 	ErrInvalidUserID         = "invalid user ID"
-	ErrInvalidGender         = "invalid gender: must be either 'male' or 'female"
+	ErrInvalidGender         = "invalid gender: must be either 'male' or 'female'"
 	ErrInvalidRole           = "invalid role value"
 	ErrInternalServer        = "internal server error"
 	ErrInvalidToken          = "invalid or expired token"

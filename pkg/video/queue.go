@@ -6,9 +6,11 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 
 	"go-gin-starter/pkg/logger"
+	"go-gin-starter/repositories"
 )
 
 // QueueManager handles SQS operations for video processing
@@ -68,7 +70,9 @@ func (q *QueueManager) StartProcessing() {
 			}
 
 			job.Status = StatusProcessing
-			if err := q.processor.ProcessVideo(&job); err != nil {
+
+			thumbnailURL, err := q.processor.ProcessVideo(&job)
+			if err != nil {
 				logger.Error("Failed to process video",
 					zap.String("match_id", job.MatchID),
 					zap.Error(err))
@@ -76,6 +80,24 @@ func (q *QueueManager) StartProcessing() {
 				job.Error = err.Error()
 			} else {
 				job.Status = StatusCompleted
+			}
+
+			matchID, parseErr := uuid.Parse(job.MatchID)
+			if parseErr == nil {
+				matchRepo := repositories.NewMatchRepository()
+				match, getErr := matchRepo.GetByID(matchID)
+				if getErr == nil {
+					match.ThumbnailURL = thumbnailURL
+					if uploadErr := matchRepo.Update(match); uploadErr != nil {
+						logger.Error("failed to update match thumbnail",
+							zap.Error(uploadErr))
+					}
+				} else {
+					logger.Error("failed to fetch match for thumbnail update",
+						zap.Error(getErr))
+				}
+			} else {
+				logger.Error("invalid match UUID", zap.Error(parseErr))
 			}
 
 			// Delete message from queue if processed successfully

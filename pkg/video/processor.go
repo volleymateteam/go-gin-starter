@@ -35,18 +35,18 @@ func NewVideoProcessor(sess *session.Session, s3Client *s3.S3, bucket string) *V
 }
 
 // ProcessVideo handles the complete video processing pipeline
-func (p *VideoProcessor) ProcessVideo(job *VideoProcessingJob) error {
+func (p *VideoProcessor) ProcessVideo(job *VideoProcessingJob) (string, error) {
 	// Create temp directory
 	tempDir, err := os.MkdirTemp("", "video-processing-*")
 	if err != nil {
-		return fmt.Errorf("failed to create temp dir: %w", err)
+		return "", fmt.Errorf("failed to create temp dir: %w", err)
 	}
 	defer os.RemoveAll(tempDir)
 
 	// Download raw video
 	inputPath := filepath.Join(tempDir, "input"+filepath.Ext(job.InputKey))
 	if err := p.downloadVideo(job.InputKey, inputPath); err != nil {
-		return fmt.Errorf("failed to download video: %w", err)
+		return "", fmt.Errorf("failed to download video: %w", err)
 	}
 
 	// Process for each format
@@ -74,6 +74,8 @@ func (p *VideoProcessor) ProcessVideo(job *VideoProcessingJob) error {
 
 	// Generate and upload thumbnail
 	thumbnailPath := filepath.Join(tempDir, "thumbnail.jpg")
+	var thumbnailURL string
+
 	if err := p.generateThumbnail(inputPath, thumbnailPath); err != nil {
 		logger.Error("Failed to generate thumbnail", zap.Error(err))
 	} else {
@@ -82,10 +84,12 @@ func (p *VideoProcessor) ProcessVideo(job *VideoProcessingJob) error {
 
 		if err := p.uploadVideo(thumbnailPath, thumbnailKey); err != nil {
 			logger.Error("Failed to upload thumbnail", zap.Error(err))
+		} else {
+			thumbnailURL = fmt.Sprintf("https://%s/%s", os.Getenv("VIDEO_CLOUDFRONT_DOMAIN"), thumbnailKey)
 		}
 	}
 
-	return nil
+	return thumbnailURL, nil
 }
 
 // downloadVideo downloads a video from S3
