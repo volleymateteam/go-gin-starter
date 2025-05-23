@@ -7,12 +7,17 @@ import (
 	"go-gin-starter/middleware"
 	"go-gin-starter/models"
 	"go-gin-starter/pkg/logger"
+	"go-gin-starter/pkg/video"
 	"go-gin-starter/routes"
 	"log"
 	"os"
 
 	_ "go-gin-starter/docs" // swagger docs
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -34,7 +39,7 @@ func main() {
 
 	// Connect to the database
 	database.ConnectDB()
-	database.DB.AutoMigrate(
+	if err := database.DB.AutoMigrate(
 		&models.User{},
 		&models.WaitlistEntry{},
 		&models.Season{},
@@ -42,7 +47,36 @@ func main() {
 		&models.Match{},
 		&models.AdminActionLog{},
 		// &models.UserActionLog{},
+	); err != nil {
+		logger.Fatal("Failed to auto-migrate database", zap.Error(err))
+	}
+
+	// Initialize AWS services
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(os.Getenv("AWS_REGION")),
+	})
+	if err != nil {
+		logger.Fatal("Failed to create AWS session", zap.Error(err))
+	}
+
+	// Initialize S3 and SQS clients
+	s3Client := s3.New(sess)
+	sqsClient := sqs.New(sess)
+
+	// Initialize video processor
+	videoProcessor := video.NewVideoProcessor(sess, s3Client, os.Getenv("AWS_BUCKET_NAME"))
+
+	// Initialize video queue manager
+	videoQueue := video.NewQueueManager(
+		sqsClient,
+		os.Getenv("VIDEO_PROCESSING_QUEUE_URL"),
+		videoProcessor,
 	)
+
+	log.Println("Loaded SQS Queue URL:", os.Getenv("VIDEO_PROCESSING_QUEUE_URL"))
+
+	// Start video processing worker in a goroutine
+	go videoQueue.StartProcessing()
 
 	// Set Gin mode based on environment
 	if gin.Mode() == gin.DebugMode {
@@ -90,5 +124,7 @@ func main() {
 	// Start the server on the specified port
 	port := config.GetEnvWithDefault("PORT", "8080")
 	logger.Info("Server starting", zap.String("port", port))
-	r.Run(":" + port)
+	if err := r.Run(":" + port); err != nil {
+		logger.Fatal("Failed to start server", zap.Error(err))
+	}
 }

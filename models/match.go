@@ -14,9 +14,13 @@ type Match struct {
 	AwayTeamID uuid.UUID `gorm:"type:uuid;not null"`
 	Round      RoundEnum `gorm:"type:varchar(30);not null"`
 
-	Location  string `gorm:"type:varchar(100)"`
-	VideoURL  string `gorm:"type:text"` // optional
-	ScoutJSON string `gorm:"type:text"` // optional
+	Competition string     `gorm:"type:varchar(100);not null"`
+	Gender      GenderEnum `gorm:"type:varchar(10);not null"`
+
+	Location     string `gorm:"type:varchar(100)"`
+	VideoURL     string `gorm:"type:text"` // optional
+	ThumbnailURL string `gorm:"type:text"` // optional
+	ScoutJSON    string `gorm:"type:text"` // optional
 
 	CreatedAt time.Time
 	UpdatedAt time.Time

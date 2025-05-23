@@ -16,7 +16,6 @@ type CreateSeasonInput struct {
 	SeasonYear string                `json:"season_year" binding:"required,len=9"` // Example: "2024-2025"
 	StartDate  *time.Time            `json:"start_date" binding:"omitempty"`
 	EndDate    *time.Time            `json:"end_date" binding:"omitempty"`
-	Round      models.RoundEnum      `json:"round" binding:"required"`
 }
 
 // UpdateSeasonInput defines the fields for updating a season
@@ -28,7 +27,6 @@ type UpdateSeasonInput struct {
 	SeasonYear string                `json:"season_year" binding:"omitempty,len=9"`
 	StartDate  *time.Time            `json:"start_date" binding:"omitempty"`
 	EndDate    *time.Time            `json:"end_date" binding:"omitempty"`
-	Round      models.RoundEnum      `json:"round" binding:"omitempty"`
 }
 
 // SeasonResponse defines the structure for returning a season
@@ -41,7 +39,6 @@ type SeasonResponse struct {
 	SeasonYear string                `json:"season_year"`
 	StartDate  *time.Time            `json:"start_date,omitempty"`
 	EndDate    *time.Time            `json:"end_date,omitempty"`
-	Round      models.RoundEnum      `json:"round"`
 	LogoURL    string                `json:"logo_url"`
 	CreatedAt  time.Time             `json:"created_at"`
 	UpdatedAt  time.Time             `json:"updated_at"`

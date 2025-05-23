@@ -101,7 +101,6 @@ type GenderEnum string
 const (
 	GenderMale   GenderEnum = "male"
 	GenderFemale GenderEnum = "female"
-	GenderOther  GenderEnum = "other"
 )
 
 // --- Season Name ---
@@ -165,7 +164,7 @@ func IsValidRole(r RoleEnum) bool {
 
 func IsValidGender(g GenderEnum) bool {
 	switch g {
-	case GenderMale, GenderFemale, GenderOther:
+	case GenderMale, GenderFemale:
 		return true
 	default:
 		return false

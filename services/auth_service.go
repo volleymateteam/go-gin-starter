@@ -64,31 +64,30 @@ func (s *AuthServiceImpl) Register(username, email, password, gender string) (*m
 		return nil, errors.New(constants.ErrUserAlreadyExists)
 	}
 
-	// Hash the password
-	hashedPassword, err := authPkg.HashPassword(password)
-	if err != nil {
-		return nil, err
+	// Only allow "male" or "female" genders for avatar and genderEnum
+	if gender != "male" && gender != "female" {
+		return nil, errors.New(constants.ErrInvalidGender)
 	}
 
 	// Set default avatar based on gender
 	var avatar string
-	switch gender {
-	case "male":
+	if gender == "male" {
 		avatar = "defaults/default-male.png"
-	case "female":
+	} else {
 		avatar = "defaults/default-female.png"
-	default:
-		avatar = "defaults/default-male.png"
 	}
 
 	var genderEnum models.GenderEnum
-	switch gender {
-	case "male":
+	if gender == "male" {
 		genderEnum = models.GenderMale
-	case "female":
+	} else {
 		genderEnum = models.GenderFemale
-	default:
-		genderEnum = models.GenderOther
+	}
+
+	// Hash the password
+	hashedPassword, err := authPkg.HashPassword(password)
+	if err != nil {
+		return nil, err
 	}
 
 	// Create the user

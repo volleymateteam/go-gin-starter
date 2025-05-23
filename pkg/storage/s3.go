@@ -32,10 +32,15 @@ func UploadMatchVideoToS3(
 	safeCompetition := strings.ReplaceAll(strings.ToLower(competition), " ", "_")
 	safeCountry := strings.ToLower(country)
 	safeGender := strings.ToLower(gender)
-	// safeSeason := strings.ReplaceAll(seasonYear, "/", "-") // e.g., 2024-2025
 	safeSeason := strings.ReplaceAll(seasonYear, "/", "_")
 
-	key := fmt.Sprintf("videos/%s_%s/%s_%s/%s%s", safeSeason, safeCountry, safeCompetition, safeGender, matchID, ext)
+	key := fmt.Sprintf("videos/%s_%s/%s_%s/%s%s",
+		safeSeason,
+		safeCountry,
+		safeCompetition,
+		safeGender,
+		matchID,
+		ext)
 
 	// Detect MIME type
 	mimeType := mime.TypeByExtension(ext)
@@ -43,12 +48,15 @@ func UploadMatchVideoToS3(
 		mimeType = "binary/octet-stream" // fallback
 	}
 
+	// Define tage if raw video
+	tags := "storage=raw" // required for lifecycle transition
+
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket:      aws.String(config.AWSBucketName),
 		Key:         aws.String(key),
 		Body:        file,
 		ContentType: aws.String(mimeType),
-		// ACL:    aws.String("public-read"),
+		Tagging:     aws.String(tags),
 	})
 	if err != nil {
 		return "", err
@@ -59,7 +67,11 @@ func UploadMatchVideoToS3(
 }
 
 // UploadUserAvatar uploads user avatar image to S3 and returns the public URL
-func UploadUserAvatar(uploader *s3manager.Uploader, file multipart.File, fileHeader *multipart.FileHeader, userID string) (string, error) {
+func UploadUserAvatar(uploader *s3manager.Uploader,
+	file multipart.File,
+	fileHeader *multipart.FileHeader,
+	userID string,
+) (string, error) {
 	ext := filepath.Ext(fileHeader.Filename)
 	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
 		return "", fmt.Errorf("unsupported file type: %s", ext)

@@ -19,8 +19,6 @@ type Season struct {
 	StartDate *time.Time `gorm:"type:timestamp"`
 	EndDate   *time.Time `gorm:"type:timestamp"`
 
-	Round RoundEnum `gorm:"type:varchar(30);not null"`
-
 	Logo string `gorm:"type:varchar(255);default:'defaults/default-season-logo.png'"`
 
 	CreatedAt time.Time

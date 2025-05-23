@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -17,6 +18,7 @@ import (
 	"go-gin-starter/pkg/logger"
 	scoutPkg "go-gin-starter/pkg/scout"
 	storagePkg "go-gin-starter/pkg/storage"
+	"go-gin-starter/pkg/video"
 	"go-gin-starter/repositories"
 
 	"github.com/google/uuid"
@@ -39,14 +41,21 @@ type MatchServiceImpl struct {
 	matchRepo  repositories.MatchRepository
 	teamRepo   repositories.TeamRepository
 	seasonRepo repositories.SeasonRepository
+	videoQueue *video.QueueManager
 }
 
 // NewMatchService creates a new instance of MatchService
-func NewMatchService(matchRepo repositories.MatchRepository, teamRepo repositories.TeamRepository, seasonRepo repositories.SeasonRepository) MatchService {
+func NewMatchService(
+	matchRepo repositories.MatchRepository,
+	teamRepo repositories.TeamRepository,
+	seasonRepo repositories.SeasonRepository,
+	videoQueue *video.QueueManager,
+) MatchService {
 	return &MatchServiceImpl{
 		matchRepo:  matchRepo,
 		teamRepo:   teamRepo,
 		seasonRepo: seasonRepo,
+		videoQueue: videoQueue,
 	}
 }
 
@@ -60,12 +69,19 @@ func (s *MatchServiceImpl) CreateMatch(input *dto.CreateMatchInput) (*dto.MatchR
 		Location:   input.Location,
 	}
 
+	season, err := s.seasonRepo.GetByID(match.SeasonID)
+	if err != nil {
+		return nil, errors.New("season not found")
+	}
+
+	match.Gender = season.Gender
+	match.Competition = string(season.Name)
+
 	if err := s.matchRepo.Create(&match); err != nil {
 		return nil, err
 	}
 
 	// Fetch related names
-	season, _ := s.seasonRepo.GetByID(match.SeasonID)
 	homeTeam, _ := s.teamRepo.GetByID(match.HomeTeamID)
 	awayTeam, _ := s.teamRepo.GetByID(match.AwayTeamID)
 
@@ -144,22 +160,55 @@ func (s *MatchServiceImpl) GetMatchByID(id uuid.UUID) (*dto.MatchResponse, error
 		jsonData, _ = fetchJSONFromS3(match.ScoutJSON)
 	}
 
+	// Build base path for video formats
+	safeSeasonName := strings.ReplaceAll(strings.ToLower(string(season.Name)), " ", "_")
+	safeSeasonYear := strings.ReplaceAll(season.SeasonYear, "/", "_")
+	safeGender := strings.ToLower(string(season.Gender))
+	safeCountry := strings.ToLower(string(season.Country))
+	basePath := fmt.Sprintf("videos/%s_%s/%s_%s/%s",
+		safeSeasonYear,
+		safeCountry,
+		safeSeasonName,
+		safeGender,
+		match.ID.String(),
+	)
+
+	// Extarct filename from video_url to use in all formats
+	videoUUID := getVideoUUIDFromURL(match.VideoURL)
+
+	videoQualities := map[string]string{
+		"1080p": fmt.Sprintf("https://%s/%s/compressed/1080p/%s", os.Getenv("VIDEO_CLOUDFRONT_DOMAIN"), basePath, videoUUID),
+		"720p":  fmt.Sprintf("https://%s/%s/compressed/720p/%s", os.Getenv("VIDEO_CLOUDFRONT_DOMAIN"), basePath, videoUUID),
+		"480p":  fmt.Sprintf("https://%s/%s/compressed/480p/%s", os.Getenv("VIDEO_CLOUDFRONT_DOMAIN"), basePath, videoUUID),
+	}
+
 	return &dto.MatchResponse{
-		ID:           match.ID,
-		SeasonID:     match.SeasonID,
-		SeasonName:   s.getSeasonName(season),
-		HomeTeamID:   match.HomeTeamID,
-		HomeTeamName: s.getTeamName(homeTeam),
-		AwayTeamID:   match.AwayTeamID,
-		AwayTeamName: s.getTeamName(awayTeam),
-		Round:        match.Round,
-		Location:     match.Location,
-		VideoURL:     match.VideoURL,
-		ScoutJSON:    match.ScoutJSON,
-		JsonData:     jsonData,
-		CreatedAt:    match.CreatedAt,
-		UpdatedAt:    match.UpdatedAt,
+		ID:             match.ID,
+		SeasonID:       match.SeasonID,
+		SeasonName:     s.getSeasonName(season),
+		HomeTeamID:     match.HomeTeamID,
+		HomeTeamName:   s.getTeamName(homeTeam),
+		AwayTeamID:     match.AwayTeamID,
+		AwayTeamName:   s.getTeamName(awayTeam),
+		Round:          match.Round,
+		Location:       match.Location,
+		VideoURL:       match.VideoURL,
+		VideoQualities: videoQualities,
+		ThumbnailURL:   match.ThumbnailURL,
+		ScoutJSON:      match.ScoutJSON,
+		JsonData:       jsonData,
+		CreatedAt:      match.CreatedAt,
+		UpdatedAt:      match.UpdatedAt,
 	}, nil
+}
+
+// getVideoUUIDFromURL extracts the final part of the URL (filename with .mp4)
+func getVideoUUIDFromURL(url string) string {
+	parts := strings.Split(url, "/")
+	if len(parts) == 0 {
+		return ""
+	}
+	return parts[len(parts)-1]
 }
 
 // UpdateMatch updates an existing match
@@ -219,7 +268,11 @@ func (s *MatchServiceImpl) DeleteMatch(id uuid.UUID) error {
 }
 
 // UploadMatchVideo handles uploading a match video to S3
-func (s *MatchServiceImpl) UploadMatchVideo(matchID uuid.UUID, file io.Reader, fileHeader *multipart.FileHeader) (string, error) {
+func (s *MatchServiceImpl) UploadMatchVideo(
+	matchID uuid.UUID,
+	file io.Reader,
+	fileHeader *multipart.FileHeader,
+) (string, error) {
 	match, err := s.matchRepo.GetByID(matchID)
 	if err != nil {
 		return "", errors.New(constants.ErrMatchNotFound)
@@ -230,40 +283,76 @@ func (s *MatchServiceImpl) UploadMatchVideo(matchID uuid.UUID, file io.Reader, f
 		return "", errors.New(constants.ErrSeasonNotFound)
 	}
 
-	// Get file extension
-	ext := filepath.Ext(fileHeader.Filename)
-	if ext != ".mp4" && ext != ".mov" && ext != ".mkv" {
-		return "", fmt.Errorf("unsupported file type: %s", ext)
-	}
+	// Create the folder structure
+	safeSeasonName := strings.ReplaceAll(strings.ToLower(string(season.Name)), " ", "_")
+	safeSeasonYear := strings.ReplaceAll(season.SeasonYear, "/", "_")
+	safeGender := strings.ToLower(string(season.Gender))
+	safeCountry := strings.ToLower(string(season.Country))
 
-	// Read file into memory
+	// Generate paths
+	basePath := fmt.Sprintf("videos/%s_%s/%s_%s/%s",
+		safeSeasonYear,
+		safeCountry,
+		safeSeasonName,
+		safeGender,
+		matchID.String())
+
+	logger.Info("Upload path",
+		zap.String("rawKey", basePath),
+		zap.String("compressedKey", basePath))
+
+	rawKey := fmt.Sprintf("%s/%s/%s%s",
+		basePath,
+		video.RawVideoFolder,
+		uuid.New().String(),
+		filepath.Ext(fileHeader.Filename))
+
+	compressedKey := fmt.Sprintf("%s/%s/%s.mp4",
+		basePath,
+		video.CompressedFolder,
+		uuid.New().String())
+
+	// Upload raw video to S3
 	buf := new(bytes.Buffer)
 	if _, err := io.Copy(buf, file); err != nil {
 		return "", err
 	}
 
-	// Create the S3 key/path
-	safeSeasonName := s.getSafeFileName(string(season.Name))
-	objectKey := fmt.Sprintf("videos/%s/%s%s", safeSeasonName, uuid.New().String(), ext)
-	contentType := fileHeader.Header.Get("Content-Type")
-
-	// Upload to S3
-	videoURL, err := storagePkg.UploadBytesToS3(buf.Bytes(), objectKey, contentType)
+	_, err = storagePkg.UploadBytesToS3(buf.Bytes(), rawKey, fileHeader.Header.Get("Content-Type"))
 	if err != nil {
 		return "", err
 	}
 
-	// Update match record
-	match.VideoURL = videoURL
+	// Create and enqueue processing job
+	job := &video.VideoProcessingJob{
+		MatchID:   matchID.String(),
+		InputKey:  rawKey,
+		OutputKey: compressedKey,
+	}
+
+	if err := s.videoQueue.EnqueueVideo(job); err != nil {
+		logger.Error("Failed to enqueue video job",
+			zap.String("match_id", matchID.String()),
+			zap.Error(err))
+	}
+
+	// build CloudFront compressed video URL
+	compressedURL := fmt.Sprintf("https://%s/%s", os.Getenv("VIDEO_CLOUDFRONT_DOMAIN"), compressedKey)
+
+	// Save the compressed URL instead of raw URL
+	match.VideoURL = compressedURL
 	if err := s.matchRepo.Update(match); err != nil {
 		return "", err
 	}
 
-	return videoURL, nil
+	return compressedURL, nil
 }
 
 // UploadMatchScout handles uploading and processing a match scout file
-func (s *MatchServiceImpl) UploadMatchScout(matchID uuid.UUID, file io.Reader, fileHeader *multipart.FileHeader) (string, error) {
+func (s *MatchServiceImpl) UploadMatchScout(matchID uuid.UUID,
+	file io.Reader,
+	fileHeader *multipart.FileHeader,
+) (string, error) {
 	match, err := s.matchRepo.GetByID(matchID)
 	if err != nil {
 		return "", errors.New(constants.ErrMatchNotFound)
@@ -319,7 +408,7 @@ func (s *MatchServiceImpl) UploadMatchScout(matchID uuid.UUID, file io.Reader, f
 // Helper function to fetch JSON from S3
 func fetchJSONFromS3(url string) (map[string]interface{}, error) {
 	if url == "" {
-	return nil, nil
+		return nil, nil
 	}
 
 	// Use the existing HTTP utility to fetch and parse JSON
@@ -346,9 +435,4 @@ func (s *MatchServiceImpl) getTeamName(team *models.Team) string {
 		return ""
 	}
 	return team.Name
-}
-
-func (s *MatchServiceImpl) getSafeFileName(name string) string {
-	// Replace spaces with underscores and convert to lowercase
-	return strings.ToLower(strings.ReplaceAll(name, " ", "_"))
 }
