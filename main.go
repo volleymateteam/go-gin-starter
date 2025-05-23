@@ -75,6 +75,8 @@ func main() {
 
 	log.Println("Loaded SQS Queue URL:", os.Getenv("VIDEO_PROCESSING_QUEUE_URL"))
 
+	log.Println("🔍 VIDEO_PROCESSING_QUEUE_URL =", os.Getenv("VIDEO_PROCESSING_QUEUE_URL"))
+
 	// Start video processing worker in a goroutine
 	go videoQueue.StartProcessing()
 
